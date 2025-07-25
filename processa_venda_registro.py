@@ -4,8 +4,12 @@ import os
 def tratar_e_retornar_dados_previstos():
     """Carrega e trata os dados, retornando apenas os dados PREV"""
     try:
-        # 1. CARREGAR OS DADOS
-        caminho_arquivo = r"C:\Users\Viana e Moura\Dropbox\PLANEJAMENTO\8. PCP - MACROFLUXO\MACROFLUXO ATUALIZADO\BASE - VENDA E REGISTRO.xlsx"
+        # 1. CARREGAR OS DADOS (usando caminho relativo)
+        # Obtém o diretório onde o script está sendo executado
+        diretorio_atual = os.path.dirname(__file__)
+        # Constrói o caminho para o arquivo na mesma pasta
+        caminho_arquivo = os.path.join(diretorio_atual, "BASE - VENDA E REGISTRO.xlsx")
+        
         if not os.path.exists(caminho_arquivo):
             print(f"Erro: Arquivo não encontrado no caminho: {caminho_arquivo}")
             return None
