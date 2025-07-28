@@ -7,6 +7,8 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
+import streamlit as st
+from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
 
 # Tenta importar os scripts de processamento de dados.
 try:
@@ -373,9 +375,6 @@ def criar_dados_exemplo():
     return pd.DataFrame(dados)
 
 # --- Interface do Streamlit ---
-import streamlit as st
-from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
-
 # CSS customizado
 st.markdown("""
 <style>

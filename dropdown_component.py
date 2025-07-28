@@ -55,7 +55,7 @@ def simple_multiselect_dropdown(label, options, key=None, default_selected=None)
     
     # Determinar texto do header
     if selected_count == total_count:
-        header_text = f"Todos selecionados ({selected_count})"
+        header_text = f"({selected_count})"
     elif selected_count == 0:
         header_text = "Nenhum selecionado"
     else:
