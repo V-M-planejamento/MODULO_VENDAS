@@ -506,7 +506,7 @@ if df_data is not None and not df_data.empty:
             df_filtered = df_filtered[df_filtered["Etapa"] == selected_etapa_nome]
 
     # Abas principais
-    tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão"])
+    tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
 
 
 #========================================================================================================
@@ -693,132 +693,311 @@ if df_data is not None and not df_data.empty:
             colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
             tabela_estilizada = aplicar_estilo(tabela_para_exibir[colunas_para_exibir])
             st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
+            
 #========================================================================================================
 
     with tab2:
-        st.subheader("Tabelão Detalhado")
-        if df_filtered.empty:
-            st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
-        else:
-            # --- INÍCIO DA LÓGICA CORRIGIDA (DENTRO DO ELSE) ---
-            df_detalhes = df_filtered.copy()
-            hoje = pd.Timestamp.now().normalize()
+        st.subheader("Tabelão Horizontal")
 
-            df_detalhes = df_detalhes.rename(columns={'Termino_prevista': 'Termino_Prevista', 'Termino_real': 'Termino_Real'})
-            for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
-                if col in df_detalhes.columns:
-                    df_detalhes[col] = df_detalhes[col].replace('-', pd.NA)
-                    df_detalhes[col] = pd.to_datetime(df_detalhes[col], errors='coerce')
+    if df_filtered.empty:
+        st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    else:
+        # --- DATA PREPARATION ---
+        df_detalhes = df_filtered.copy()
+        hoje = pd.Timestamp.now().normalize()
 
-            df_detalhes['Conclusao_Valida'] = False
-            if '% concluído' in df_detalhes.columns:
-                mask = ((df_detalhes['% concluído'] == 100) & (df_detalhes['Termino_Real'].notna()) & ((df_detalhes['Termino_Prevista'].isna()) | (df_detalhes['Termino_Real'] <= df_detalhes['Termino_Prevista'])))
-                df_detalhes.loc[mask, 'Conclusao_Valida'] = True
+        # Column renaming and cleaning
+        df_detalhes = df_detalhes.rename(columns={
+            'Termino_prevista': 'Termino_Prevista', 
+            'Termino_real': 'Termino_Real'
+        })
+        
+        # Date conversion
+        for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
+            if col in df_detalhes.columns:
+                df_detalhes[col] = df_detalhes[col].replace('-', pd.NA)
+                df_detalhes[col] = pd.to_datetime(df_detalhes[col], errors='coerce')
 
-            agg_dict = {
-                'Inicio_Prevista': ('Inicio_Prevista', 'min'), 'Termino_Prevista': ('Termino_Prevista', 'max'),
-                'Inicio_Real': ('Inicio_Real', 'min'), 'Termino_Real': ('Termino_Real', 'max'),
-                'Var. Term': ('Termino_Real', lambda x: (x.max() - df_detalhes.loc[x.index, 'Termino_Prevista'].max()).days if pd.notna(x.max()) and pd.notna(df_detalhes.loc[x.index, 'Termino_Prevista'].max()) else pd.NA),
-                'Concluido_Valido': ('Conclusao_Valida', 'any')
-            }
-            if '% concluído' in df_detalhes.columns:
-                agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
-                if not df_detalhes.empty and df_detalhes['% concluído'].max() <= 1:
-                    df_detalhes['% concluído'] *= 100
+        # Completion validation
+        df_detalhes['Conclusao_Valida'] = False
+        if '% concluído' in df_detalhes.columns:
+            mask = (
+                (df_detalhes['% concluído'] == 100) & 
+                (df_detalhes['Termino_Real'].notna()) & 
+                ((df_detalhes['Termino_Prevista'].isna()) | 
+                (df_detalhes['Termino_Real'] <= df_detalhes['Termino_Prevista']))
+            )
+            df_detalhes.loc[mask, 'Conclusao_Valida'] = True
 
-            df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
+        # --- DATA AGGREGATION ---
+        agg_dict = {
+            'Inicio_Prevista': ('Inicio_Prevista', 'min'), 
+            'Termino_Prevista': ('Termino_Prevista', 'max'),
+            'Inicio_Real': ('Inicio_Real', 'min'), 
+            'Termino_Real': ('Termino_Real', 'max'),
+            'Var. Term': ('Termino_Real', lambda x: (
+                (x.max() - df_detalhes.loc[x.index, 'Termino_Prevista'].max()).days 
+                if pd.notna(x.max()) and pd.notna(df_detalhes.loc[x.index, 'Termino_Prevista'].max()) 
+                else pd.NA
+            )),
+            'Concluido_Valido': ('Conclusao_Valida', 'any')
+        }
+        
+        if '% concluído' in df_detalhes.columns:
+            agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
+            if not df_detalhes.empty and df_detalhes['% concluído'].max() <= 1:
+                df_detalhes['% concluído'] *= 100
 
-            st.write("---")
-            col1, col2 = st.columns(2)
-            opcoes_classificacao = {
-                'Padrão (UGB, Empreendimento e Etapa)': ['UGB', 'Empreendimento', 'Etapa_Ordem'], 'UGB (A-Z)': ['UGB'],
-                'Empreendimento (A-Z)': ['Empreendimento'], 'Data de Início Previsto (Mais antiga)': ['Inicio_Prevista'],
-                'Data de Término Previsto (Mais recente)': ['Termino_Prevista'], 'Variação de Prazo (Pior para Melhor)': ['Var. Term']
-            }
-            with col1: classificar_por = st.selectbox("Ordenar tabela por:", options=list(opcoes_classificacao.keys()), key="classificar_por_selectbox")
-            with col2: ordem = st.radio("Ordem:", options=['Crescente', 'Decrescente'], horizontal=True, key="ordem_radio")
+        df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
 
-            ordem_etapas_completas = list(sigla_para_nome_completo.keys())
-            df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(lambda x: ordem_etapas_completas.index(x) if x in ordem_etapas_completas else len(ordem_etapas_completas))
-            df_ordenado = df_agregado.sort_values(by=opcoes_classificacao[classificar_por], ascending=(ordem == 'Crescente'))
-            st.write("---")
-
-            df_pivot = df_ordenado.pivot_table(index=['UGB', 'Empreendimento'], columns='Etapa', values=['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term'], aggfunc='first')
-
-            # --- CORREÇÃO DO KEYERROR ---
-            etapas_existentes_no_pivot = df_pivot.columns.get_level_values(1).unique()
-            colunas_ordenadas = []
-            for etapa in ordem_etapas_completas:
-                if etapa in etapas_existentes_no_pivot:
-                    for tipo in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term']:
-                        if (tipo, etapa) in df_pivot.columns:
-                            colunas_ordenadas.append((tipo, etapa))
+        # --- SORTING OPTIONS ---
+        st.write("---")
+        col1, col2 = st.columns(2)
+        
+        opcoes_classificacao = {
+            'Padrão (UGB, Empreendimento e Etapa)': ['UGB', 'Empreendimento', 'Etapa_Ordem'], 
+            'UGB (A-Z)': ['UGB'],
+            'Empreendimento (A-Z)': ['Empreendimento'], 
+            'Data de Início Previsto (Mais antiga)': ['Inicio_Prevista'],
+            'Data de Término Previsto (Mais recente)': ['Termino_Prevista'], 
+            'Variação de Prazo (Pior para Melhor)': ['Var. Term']
+        }
+        
+        with col1:
+            classificar_por = st.selectbox(
+                "Ordenar tabela por:", 
+                options=list(opcoes_classificacao.keys()), 
+                key="classificar_por_selectbox"
+            )
             
-            df_final = df_pivot[colunas_ordenadas].reset_index()
-            # --- FIM DA CORREÇÃO ---
+        with col2:
+            ordem = st.radio(
+                "Ordem:", 
+                options=['Crescente', 'Decrescente'], 
+                horizontal=True, 
+                key="ordem_radio"
+            )
 
-            novos_nomes = []
-            for col in df_final.columns:
-                if col[0] in ['UGB', 'Empreendimento']: novos_nomes.append(col[0])
-                else:
-                    tipo, etapa = col[0], col[1]
-                    nome_etapa = sigla_para_nome_completo.get(etapa, etapa)
-                    nome_tipo = {'Inicio_Prevista': 'Início Prev.', 'Termino_Prevista': 'Término Prev.', 'Inicio_Real': 'Início Real', 'Termino_Real': 'Término Real', 'Var. Term': 'Var. Term'}[tipo]
-                    novos_nomes.append(f"{nome_etapa} {nome_tipo}")
-            df_final.columns = novos_nomes
+        # Apply sorting
+        ordem_etapas_completas = list(sigla_para_nome_completo.keys())
+        df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(
+            lambda x: ordem_etapas_completas.index(x) if x in ordem_etapas_completas else len(ordem_etapas_completas)
+        )
+        df_ordenado = df_agregado.sort_values(
+            by=opcoes_classificacao[classificar_por], 
+            ascending=(ordem == 'Crescente')
+        )
+        st.write("---")
 
-            def formatar_valor(valor, tipo):
-                if pd.isna(valor): return "-"
-                if tipo == 'data': return valor.strftime("%d/%m/%Y")
-                if tipo == 'variacao': return f"{'▼' if valor > 0 else '▲'} {abs(int(valor))} dias"
-                return str(valor)
+        # --- PIVOT TABLE CREATION ---
+        df_pivot = df_ordenado.pivot_table(
+            index=['UGB', 'Empreendimento'], 
+            columns='Etapa', 
+            values=['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term'], 
+            aggfunc='first'
+        )
 
-            def determinar_cor(row, col_name):
-                if 'Início Real' in col_name or 'Término Real' in col_name:
-                    etapa_nome_completo = " ".join(col_name.split(' ')[:-2])
-                    etapa_sigla = nome_completo_para_sigla.get(etapa_nome_completo)
-                    if etapa_sigla:
-                        etapa_data_list = df_agregado[(df_agregado['UGB'] == row['UGB']) & (df_agregado['Empreendimento'] == row['Empreendimento']) & (df_agregado['Etapa'] == etapa_sigla)]
-                        if not etapa_data_list.empty:
-                            etapa_data = etapa_data_list.iloc[0]
-                            percentual = etapa_data.get('Percentual_Concluido', 0)
-                            termino_real, termino_previsto = etapa_data['Termino_Real'], etapa_data['Termino_Prevista']
-                            if percentual == 100:
-                                if pd.notna(termino_real) and pd.notna(termino_previsto):
-                                    if termino_real < termino_previsto: return "#2EAF5B"
-                                    elif termino_real > termino_previsto: return "#C30202"
-                            elif pd.notna(termino_real) and (termino_real < hoje): return "#A38408"
-                return "#000000"
+        # Column ordering for pivot table
+        etapas_existentes_no_pivot = df_pivot.columns.get_level_values(1).unique()
+        colunas_ordenadas = []
+        
+        for etapa in ordem_etapas_completas:
+            if etapa in etapas_existentes_no_pivot:
+                for tipo in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term']:
+                    if (tipo, etapa) in df_pivot.columns:
+                        colunas_ordenadas.append((tipo, etapa))
+        
+        df_final = df_pivot[colunas_ordenadas].reset_index()
 
-            df_formatado = df_final.copy()
-            for col in df_formatado.columns:
-                if any(x in col for x in ['Início Prev.', 'Término Prev.', 'Início Real', 'Término Real']): df_formatado[col] = df_formatado[col].apply(lambda x: formatar_valor(x, 'data'))
-                elif 'Var. Term' in col: df_formatado[col] = df_formatado[col].apply(lambda x: formatar_valor(x, 'variacao'))
+        # --- COLUMN RENAMING FOR MULTIINDEX ---
+        novos_nomes = []
+        for col in df_final.columns:
+            if col[0] in ['UGB', 'Empreendimento']: 
+                novos_nomes.append((col[0], ''))  # Segundo nível vazio para colunas simples
+            else:
+                tipo, etapa = col[0], col[1]
+                nome_etapa = sigla_para_nome_completo.get(etapa, etapa)
+                nome_tipo = {
+                    'Inicio_Prevista': 'Início Prev.', 
+                    'Termino_Prevista': 'Término Prev.', 
+                    'Inicio_Real': 'Início Real', 
+                    'Termino_Real': 'Término Real', 
+                    'Var. Term': 'VarTerm'
+                }[tipo]
+                novos_nomes.append((nome_etapa, nome_tipo))
+        
+        df_final.columns = pd.MultiIndex.from_tuples(novos_nomes)
 
-            def estilo_linha(row):
-                styles = []
-                for col_name, val in row.items():
-                    if val == '-': styles.append('color: #999999; font-style: italic;')
-                    elif 'Início Real' in col_name or 'Término Real' in col_name: styles.append(f'color: {determinar_cor(row, col_name)}; font-weight: bold;')
-                    elif 'Var. Term' in col_name:
-                        if '▲' in val: styles.append('color: #e74c3c; font-weight: 600;')
-                        elif '▼' in val: styles.append('color: #2ecc71; font-weight: 600;')
-                        else: styles.append('color: #000000;')
-                    else: styles.append('color: #000000;')
-                return styles
+        # --- FORMATTING FUNCTIONS ---
+        def formatar_valor(valor, tipo):
+            if pd.isna(valor): 
+                return "-"
+            if tipo == 'data': 
+                return valor.strftime("%d/%m/%Y")
+            if tipo == 'variacao': 
+                return f"{'▼' if valor > 0 else '▲'} {abs(int(valor))} dias"
+            return str(valor)
 
-            styled_df = df_formatado.style.apply(estilo_linha, axis=1)
-            styled_df = styled_df.set_properties(**{'text-align': 'center', 'font-size': '12px', 'border': '1px solid #f0f0f0', 'white-space': 'nowrap'})
-            styled_df = styled_df.set_table_styles([{'selector': 'th', 'props': [('font-size', '12px'), ('text-align', 'center'), ('white-space', 'nowrap')]}])
-            st.dataframe(styled_df, height=min(35 * len(df_final) + 40, 600), hide_index=True, use_container_width=True)
+        def determinar_cor(row, col_tuple):
+            """Determina a cor baseada no status da etapa"""
+            if len(col_tuple) == 2 and (col_tuple[1] in ['Início Real', 'Término Real']):
+                etapa_nome_completo = col_tuple[0]
+                etapa_sigla = nome_completo_para_sigla.get(etapa_nome_completo)
+                
+                if etapa_sigla:
+                    # Busca os dados da etapa específica no df_agregado
+                    etapa_data = df_agregado[
+                        (df_agregado['UGB'] == row[('UGB', '')]) & 
+                        (df_agregado['Empreendimento'] == row[('Empreendimento', '')]) & 
+                        (df_agregado['Etapa'] == etapa_sigla)
+                    ]
+                    
+                    if not etapa_data.empty:
+                        etapa_data = etapa_data.iloc[0]
+                        percentual = etapa_data.get('Percentual_Concluido', 0)
+                        termino_real = etapa_data['Termino_Real']
+                        termino_previsto = etapa_data['Termino_Prevista']
+                        
+                        # Verifica se está 100% concluído
+                        if percentual == 100:
+                            if pd.notna(termino_real) and pd.notna(termino_previsto):
+                                if termino_real < termino_previsto: 
+                                    return "color: #2EAF5B; font-weight: bold;"  # Concluído antes
+                                elif termino_real > termino_previsto: 
+                                    return "color: #C30202; font-weight: bold;"  # Concluído com atraso
+                        # Verifica se está atrasado (data passou mas não está 100%)
+                        elif pd.notna(termino_real) and (termino_real < hoje): 
+                            return "color: #A38408; font-weight: bold;"  # Aguardando atualização
             
-            st.markdown("""<div style="margin-top: 10px; font-size: 12px; color: #555;">
-                <strong>Legenda:</strong> 
-                <span style="color: #2EAF5B; font-weight: bold;">■ Concluído antes do prazo</span> | 
-                <span style="color: #C30202; font-weight: bold;">■ Concluído com atraso</span> | 
-                <span style="color: #A38408; font-weight: bold;">■ Aguardando atualização</span> | 
-                <span style="color: #000000; font-weight: bold;">■ Em andamento</span> | 
-                <span style="color: #999; font-style: italic;"> - Dados não disponíveis</span>
-            </div>""", unsafe_allow_html=True)
+            # Padrão para outras colunas ou casos não especificados
+            return ""
+
+        # --- DATA FORMATTING ---
+        df_formatado = df_final.copy()
+        for col_tuple in df_formatado.columns:
+            if len(col_tuple) == 2 and col_tuple[1] != '':  # Ignorar colunas sem segundo nível
+                if any(x in col_tuple[1] for x in ["Início Prev.", "Término Prev.", "Início Real", "Término Real"]): 
+                    df_formatado[col_tuple] = df_formatado[col_tuple].apply(lambda x: formatar_valor(x, "data"))
+                elif "VarTerm" in col_tuple[1]: 
+                    df_formatado[col_tuple] = df_formatado[col_tuple].apply(lambda x: formatar_valor(x, "variacao"))
+
+        # --- STYLING FUNCTION ---
+        def aplicar_estilos(df):
+            # Cria um DataFrame de estilos vazio com as mesmas dimensões do DataFrame original
+            styles = pd.DataFrame('', index=df.index, columns=df.columns)
+            
+            for i, row in df.iterrows():
+                for col_tuple in df.columns:
+                    # Aplicar estilo para células de dados
+                    if len(col_tuple) == 2 and col_tuple[1] != '':
+                        # Estilo base para todas as células
+                        cell_style = ""
+                        
+                        # Dados faltantes
+                        if row[col_tuple] == '-':
+                            cell_style = 'color: #999999; font-style: italic;'
+                        else:
+                            # Aplicar cores condicionais para Início/Término Real
+                            if col_tuple[1] in ['Início Real', 'Término Real']:
+                                row_dict = {('UGB', ''): row[('UGB', '')], 
+                                           ('Empreendimento', ''): row[('Empreendimento', '')]}
+                                cell_style = determinar_cor(row_dict, col_tuple)
+                            
+                            # Estilo para variação de prazo
+                            elif 'VarTerm' in col_tuple[1]:
+                                if '▲' in str(row[col_tuple]):  # Atraso
+                                    cell_style = 'color: #e74c3c; font-weight: 600;'
+                                elif '▼' in str(row[col_tuple]):  # Adiantamento
+                                    cell_style = 'color: #2ecc71; font-weight: 600;'
+                        
+                        styles.at[i, col_tuple] = cell_style
+            
+            return styles
+
+        # --- TABLE STYLING ---
+        header_styles = [
+            # Estilo para o nível superior (etapas)
+            {
+                'selector': 'th.level0',
+                'props': [
+                    ('font-size', '12px'),
+                    ('font-weight', 'bold'),
+                    ('background-color', '#f8f9fa'),
+                    ('border-bottom', '2px solid #ddd'),
+                    ('text-align', 'center'),
+                    ('white-space', 'nowrap')
+                ]
+            },
+            # Estilo para o nível inferior (tipos de data)
+            {
+                'selector': 'th.level1',
+                'props': [
+                    ('font-size', '11px'),
+                    ('font-weight', 'normal'),
+                    ('background-color', '#f8f9fa'),
+                    ('text-align', 'center'),
+                    ('white-space', 'nowrap')
+                ]
+            },
+            # Estilo para células de dados
+            {
+                'selector': 'td',
+                'props': [
+                    ('font-size', '12px'),
+                    ('text-align', 'center'),
+                    ('padding', '5px 8px'),
+                    ('border', '1px solid #f0f0f0')
+                ]
+            },
+            # Estilo para cabeçalho das colunas UGB e Empreendimento
+            {
+                'selector': 'th.col_heading.level0',
+                'props': [
+                    ('font-size', '12px'),
+                    ('font-weight', 'bold'),
+                    ('background-color', '#f0f2f6'),
+                    ('text-align', 'center')
+                ]
+            }
+        ]
+
+        # Adicionar bordas entre grupos de colunas
+        for i, etapa in enumerate(ordem_etapas_completas):
+            if i > 0:  # Não aplicar para a primeira etapa
+                # Encontrar a primeira coluna de cada etapa
+                etapa_nome = sigla_para_nome_completo.get(etapa, etapa)
+                col_idx = next((idx for idx, col in enumerate(df_final.columns) 
+                             if col[0] == etapa_nome), None)
+                if col_idx:
+                    header_styles.append({
+                        'selector': f'th:nth-child({col_idx+1})',
+                        'props': [('border-left', '2px solid #ddd')]
+                    })
+                    header_styles.append({
+                        'selector': f'td:nth-child({col_idx+1})',
+                        'props': [('border-left', '2px solid #ddd')]
+                    })
+
+        # Aplicar estilos condicionais
+        styled_df = df_formatado.style.apply(aplicar_estilos, axis=None)
+        styled_df = styled_df.set_table_styles(header_styles)
+
+        # --- DISPLAY RESULTS ---
+        st.dataframe(
+            styled_df, 
+            height=min(35 * len(df_final) + 40, 600), 
+            hide_index=True, 
+            use_container_width=True
+        )
+        
+        # Legend
+        st.markdown("""<div style="margin-top: 10px; font-size: 12px; color: #555;">
+            <strong>Legenda:</strong> 
+            <span style="color: #2EAF5B; font-weight: bold;">■ Concluído antes do prazo</span> | 
+            <span style="color: #C30202; font-weight: bold;">■ Concluído com atraso</span> | 
+            <span style="color: #A38408; font-weight: bold;">■ Aguardando atualização</span> | 
+            <span style="color: #000000; font-weight: bold;">■ Em andamento</span> | 
+            <span style="color: #999; font-style: italic;"> - Dados não disponíveis</span>
+        </div>""", unsafe_allow_html=True)
 else:
     st.error("❌ Não foi possível carregar ou gerar os dados.")
