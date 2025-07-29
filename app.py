@@ -735,11 +735,6 @@ if df_data is not None and not df_data.empty:
             'Termino_Prevista': ('Termino_Prevista', 'max'),
             'Inicio_Real': ('Inicio_Real', 'min'), 
             'Termino_Real': ('Termino_Real', 'max'),
-            'Var. Term': ('Termino_Real', lambda x: (
-                (x.max() - df_detalhes.loc[x.index, 'Termino_Prevista'].max()).days 
-                if pd.notna(x.max()) and pd.notna(df_detalhes.loc[x.index, 'Termino_Prevista'].max()) 
-                else pd.NA
-            )),
             'Concluido_Valido': ('Conclusao_Valida', 'any')
         }
         
@@ -748,7 +743,11 @@ if df_data is not None and not df_data.empty:
             if not df_detalhes.empty and df_detalhes['% concluído'].max() <= 1:
                 df_detalhes['% concluído'] *= 100
 
+        # First aggregate without variation
         df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
+        
+        # Then calculate variation consistently with tab1
+        df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
 
         # --- SORTING OPTIONS ---
         st.write("---")
