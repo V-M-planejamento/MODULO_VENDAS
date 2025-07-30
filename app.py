@@ -560,6 +560,9 @@ if df_data is not None and not df_data.empty:
 
             # Calcular variação de término
             df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
+            
+            # NOVA FUNCIONALIDADE: Calcular duração real (oculta)
+            df_agregado['Duracao_Real'] = (df_agregado['Termino_Real'] - df_agregado['Inicio_Real']).dt.days
 
             # --- Controles de Classificação ---
             st.write("---")
@@ -594,14 +597,15 @@ if df_data is not None and not df_data.empty:
                 var_term_cabecalho = var_term_assinatura.iloc[0] if not var_term_assinatura.empty and pd.notna(var_term_assinatura.iloc[0]) else grupo['Var. Term'].mean()
                 
                 percentuais = grupo['Percentual_Concluido']
-                var_term = grupo['Var. Term']
-                valid_mask = (~var_term.isna()) & (~percentuais.isna())
+                # ALTERAÇÃO: Usar duração real ao invés de variação de término
+                duracao_real = grupo['Duracao_Real']
+                valid_mask = (~duracao_real.isna()) & (~percentuais.isna())
                 percentuais_validos = percentuais[valid_mask]
-                var_term_validos = var_term[valid_mask]
+                duracao_real_validos = duracao_real[valid_mask]
                 
-                if len(percentuais_validos) > 0 and len(var_term_validos) > 0 and var_term_validos.sum() != 0:
-                    soma_ponderada = (percentuais_validos * var_term_validos).sum()
-                    soma_pesos = var_term_validos.sum()
+                if len(percentuais_validos) > 0 and len(duracao_real_validos) > 0 and duracao_real_validos.sum() != 0:
+                    soma_ponderada = (percentuais_validos * duracao_real_validos).sum()
+                    soma_pesos = duracao_real_validos.sum()
                     percentual_medio = soma_ponderada / soma_pesos
                 else:
                     percentual_medio = percentuais.mean()
@@ -690,9 +694,12 @@ if df_data is not None and not df_data.empty:
                 'Termino_Prevista': 'Término Prev.', 'Inicio_Real': 'Início Real',
                 'Termino_Real': 'Término Real', 'Percentual_Concluido': '% Concluído'
             })
+            # A coluna 'Duracao_Real' não é incluída nas colunas para exibir, mantendo-a oculta
             colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
             tabela_estilizada = aplicar_estilo(tabela_para_exibir[colunas_para_exibir])
             st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
+
+
             
 #========================================================================================================
 
