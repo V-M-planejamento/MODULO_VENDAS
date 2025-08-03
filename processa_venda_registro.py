@@ -39,9 +39,9 @@ def tratar_e_retornar_dados_previstos():
             "CONT.REAL.TÉRMINO", "CONT.REAL.INÍCIO", "CONT.PREV.TÉRMINO", "CONT.PREV.INÍCIO",
             "LAE.REAL.TÉRMINO", "LAE.REAL.INÍCIO", "LAE.PREV.TÉRMINO", "LAE.PREV.INÍCIO",
             "MEM.REAL.TÉRMINO", "MEM.REAL.INÍCIO", "MEM.PREV.TÉRMINO", "MEM.PREV.INÍCIO",
-            "ENG.REAL.TÉRMINO", "ENG.REAL.INÍCIO", "ENG.PREV.TÉRMINO", "ENG.PREV.INÍCIO",
             "DOC.REAL.TÉRMINO", "DOC.REAL.INICIO", "DOC.PREV.TÉRMINO", "DOC.PREV.INÍCIO",
-            "DM.REAL.TÉRMINO", "DM.REAL.INÍCIO", "DM.PREV.TÉRMINO", "DM.PREV.INÍCIO"
+            "DM.REAL.TÉRMINO", "DM.REAL.INÍCIO", "DM.PREV.TÉRMINO", "DM.PREV.INÍCIO",
+            "PJ.REAL.TÉRMINO", "PJ.REAL.INÍCIO", "PJ.PREV.TÉRMINO", "PJ.PREV.INÍCIO"
         ]
         
         colunas_fixas = [col for col in df.columns if col not in colunas_unpivot]

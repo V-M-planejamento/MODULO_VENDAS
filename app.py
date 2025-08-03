@@ -9,6 +9,7 @@ import matplotlib.gridspec as gridspec
 from datetime import datetime
 import streamlit as st
 from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
+from popup import show_popup  # Importando o sistema de popup
 
 # Tenta importar os scripts de processamento de dados.
 try:
@@ -41,6 +42,23 @@ class StyleConfig:
     FUNDO_TABELA = '#f8f9fa'
     ESPACO_ENTRE_EMPREENDIMENTOS = 1.5
 
+# --- Função para abreviar nomes longos ---
+def abreviar_nome(nome):
+    if pd.isna(nome):
+        return nome
+    
+    # Remove "CONDOMINIO " se existir
+    nome = nome.replace('CONDOMINIO ', '')
+    
+    # Divide em palavras
+    palavras = nome.split()
+    
+    # Pega as 3 primeiras palavras se houver mais que 3
+    if len(palavras) > 3:
+        nome = ' '.join(palavras[:3])
+    
+    return nome
+
 # --- Funções Utilitárias e Mapeamentos ---
 def converter_porcentagem(valor):
     if pd.isna(valor) or valor == '': return 0.0
@@ -56,16 +74,33 @@ def formatar_data(data):
     return data.strftime("%d/%m/%y") if pd.notna(data) else "N/D"
 
 sigla_para_nome_completo = {
-    'DM': '1.DEFINIÇÃO DO MÓDULO', 'DOC': '2.DOCUMENTAÇÃO', 'ENG': '3.ENGENHARIA',
-    'MEM': '4.MEMORIAL', 'LAE': '5.LAE', 'CONT': '6.CONTRATAÇÃO', 'ASS': '7.ASSINATURA',
+    'DM': '1. DEFINIÇÃO DO MÓDULO',
+    'DOC': '2. DOCUMENTAÇÃO',
+    'LAE': '3. LAE',
+    'MEM': '4. MEMORIAL',
+    'CONT': '5. CONTRATAÇÃO',
+    'ASS': '6. ASSINATURA',
+    'PJ': '7. 1º PJ'
 }
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
-    'DEFINIÇÃO DO MÓDULO': 'DM', 'DOCUMENTAÇÃO': 'DOC', 'ENGENHARIA': 'ENG',
-    'MEMORIAL': 'MEM', 'LAE': 'LAE', 'CONTRATAÇÃO': 'CONT', 'ASSINATURA': 'ASS',
-    'PLANEJAMENTO': 'DM', 'ENGENHARIA CEF': 'ENG', 'MEMORIAL DE INCORPORAÇÃO': 'MEM',
-    'EMISSÃO DO LAE': 'LAE', 'CONTESTAÇÃO': 'LAE', 'DJE': 'CONT', 'ANÁLISE DE RISCO': 'CONT',
-    'MORAR BEM': 'ASS', 'SEGUROS': 'ASS', 'ATESTE': 'ASS', 'DEMANDA MÍNIMA': 'ASS',
+    'DEFINIÇÃO DO MÓDULO': 'DM',
+    'DOCUMENTAÇÃO': 'DOC',
+    'LAE': 'LAE',
+    'MEMORIAL': 'MEM',
+    'CONTRATAÇÃO': 'CONT',
+    'ASSINATURA': 'ASS',
+    '1º PJ': 'PJ',
+    'PLANEJAMENTO': 'DM',
+    'MEMORIAL DE INCORPORAÇÃO': 'MEM',
+    'EMISSÃO DO LAE': 'LAE',
+    'CONTESTAÇÃO': 'LAE',
+    'DJE': 'CONT',
+    'ANÁLISE DE RISCO': 'CONT',
+    'MORAR BEM': 'ASS',
+    'SEGUROS': 'ASS',
+    'ATESTE': 'ASS',
+    'DEMANDA MÍNIMA': 'ASS',
 }
 
 def padronizar_etapa(etapa_str):
@@ -87,6 +122,10 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
     plt.rcParams['figure.dpi'] = 150
     plt.rcParams['savefig.dpi'] = 150
 
+    # --- Aplicar abreviação de nomes ---
+    if 'Empreendimento' in df.columns:
+        df['Empreendimento'] = df['Empreendimento'].apply(abreviar_nome)
+
     # --- Preparação e Ordenação dos Dados ---
     for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
         if col in df.columns:
@@ -98,8 +137,25 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
-    # MODIFICAÇÃO PRINCIPAL - ORDENAÇÃO POR DATA REAL QUANDO APLICÁVEL
+    if num_empreendimentos > 1 and num_etapas > 1:
+        empreendimentos = df['Empreendimento'].unique()
+        for empreendimento in empreendimentos:
+            df_filtrado = df[df['Empreendimento'] == empreendimento]
+            gerar_gantt_individual(df_filtrado, tipo_visualizacao)
+        return
+    else:
+        gerar_gantt_individual(df, tipo_visualizacao)
+
+def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
+    """Função que gera um único gráfico Gantt para um conjunto de dados."""
+    
+    # --- Ordenação dos Dados ---
+    num_empreendimentos = df['Empreendimento'].nunique()
+    num_etapas = df['Etapa'].nunique()
+
+    # Modificação: Remover "CONDOMINIO " dos nomes quando apenas uma etapa está sendo filtrada
     if num_empreendimentos > 1 and num_etapas == 1:
+        df['Empreendimento'] = df['Empreendimento'].str.replace('CONDOMINIO ', '', regex=False)
         if tipo_visualizacao == "Real":
             df = df.sort_values('Inicio_Real', ascending=True)
         else:
@@ -160,8 +216,10 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
         
         if not (num_empreendimentos > 1 and num_etapas == 1) and linha['Empreendimento'] != empreendimento_atual:
             empreendimento_atual = linha['Empreendimento']
+            # Modificação: Remover "CONDOMINIO " também dos cabeçalhos
+            nome_formatado = empreendimento_atual.replace('CONDOMINIO ', '')
             y_cabecalho = y_pos - (StyleConfig.ALTURA_GANTT_POR_ITEM / 2) - 0.2
-            eixo_tabela.text(0.5, y_cabecalho, empreendimento_atual,
+            eixo_tabela.text(0.5, y_cabecalho, nome_formatado,
                             va="center", ha="center", bbox=StyleConfig.CABECALHO, **StyleConfig.FONTE_TITULO)
 
         estilo_celula = StyleConfig.CELULA_PAR if int(y_pos) % 2 == 0 else StyleConfig.CELULA_IMPAR
@@ -206,6 +264,8 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
         eixo_tabela.text(0.88, y_pos, f"{percentual:.0f}%", va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
 
     # --- Desenho das Barras ---
+    datas_relevantes = []
+
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
         ALTURA_BARRA = StyleConfig.ALTURA_BARRA_GANTT
@@ -213,10 +273,11 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
 
         # Barra Prevista Contínua
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
-           duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
-           eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
-                          height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
-                          antialiased=False)
+            duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
+            eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
+                           height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
+                           antialiased=False)
+            datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
         # Barra Real Contínua
         if tipo_visualizacao in ["Ambos", "Real"] and pd.notna(linha['Inicio_Real']):
@@ -225,6 +286,28 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
                            height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
                            antialiased=False)
+            datas_relevantes.extend([linha['Inicio_Real'], termino_real])
+
+    # --- Ajuste Automático dos Limites do Gráfico ---
+    if datas_relevantes:
+        # Converter para Timestamp e remover valores NaT
+        datas_validas = [pd.Timestamp(d) for d in datas_relevantes if pd.notna(d)]
+        
+        if datas_validas:
+            data_min = min(datas_validas)
+            data_max = max(datas_validas)
+            
+            # Adicionar margem de 90 dias após o término máximo
+            margem = pd.Timedelta(days=90)
+            limite_superior = data_max + margem
+            
+            # Garantir que a data atual (hoje) também seja visível se estiver além do limite
+            if hoje > limite_superior:
+                limite_superior = hoje + pd.Timedelta(days=10)  # Pequena margem adicional para o texto "Hoje"
+            
+            # Aplicar os novos limites ao gráfico
+            eixo_gantt.set_xlim(left=data_min - pd.Timedelta(days=5),  # Pequena margem à esquerda
+                               right=limite_superior)
 
     # --- Formatação Final dos Eixos ---
     if not rotulo_para_posicao:
@@ -241,7 +324,6 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
     eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
     eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left')
 
-    # NOVO CÓDIGO PARA AJUSTE DA META PREVISTA
     if num_empreendimentos == 1 and num_etapas > 1:
         empreendimento = df["Empreendimento"].unique()[0]
         df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ASS")]
@@ -257,18 +339,9 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
                 tipo_meta = "Real"
 
             if data_meta is not None:
-                # Ajustar os limites do eixo X para acomodar a meta
-                xlim_atual = eixo_gantt.get_xlim()
-                margem = pd.Timedelta(days=100)  # 2 meses de margem
-                
-                if data_meta > pd.to_datetime(xlim_atual[1]) - margem:
-                    nova_data_limite = data_meta + margem
-                    eixo_gantt.set_xlim(right=nova_data_limite)
-                
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, 
                                    linestyle="--", linewidth=1.7, alpha=0.7)
                 
-                # Posicionar o texto dentro do gráfico
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
                                f"Meta {tipo_meta}\nAssinatura: {data_meta.strftime('%d/%m/%y')}", 
@@ -284,24 +357,22 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
     plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
 
     handles_legenda = [
-    Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
-    Patch(color=StyleConfig.COR_REAL, label='Real')
-]
+        Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
+        Patch(color=StyleConfig.COR_REAL, label='Real')
+    ]
 
-    # Ajuste o segundo valor de bbox_to_anchor para diminuir o espaço (ex: -0.05 em vez de -0.2)
     eixo_gantt.legend(
         handles=handles_legenda,
-        loc='upper center',          # Alinha no canto superior direito
-        bbox_to_anchor=(1.1, 1),  # Ajuste fino para posicionar fora do gráfico (se necessário)
-        frameon=False,             # Remove a borda
-        borderaxespad=0.1          # Espaçamento entre a legenda e o gráfico
+        loc='upper center',
+        bbox_to_anchor=(1.1, 1),
+        frameon=False,
+        borderaxespad=0.1
     )
 
-    # Ajuste o rect para evitar que o tight_layout corte a legenda
-    plt.tight_layout(rect=[0, 0.03, 1, 1])  # O segundo valor controla o espaço inferior
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
     plt.close(figura)
-
+    
 # --- Lógica Principal do App Streamlit (sem alterações) ---
 st.set_page_config(layout="wide", page_title="Dashboard de Gantt Comparativo")
 
@@ -375,6 +446,11 @@ def criar_dados_exemplo():
     return pd.DataFrame(dados)
 
 # --- Interface do Streamlit ---
+
+# Verificar se o popup deve ser exibido
+if show_popup():
+    st.stop()  # Para a execução do resto do app enquanto o popup está ativo
+
 # CSS customizado
 st.markdown("""
 <style>
@@ -1007,3 +1083,5 @@ if df_data is not None and not df_data.empty:
             </div>""", unsafe_allow_html=True)
 else:
     st.error("❌ Não foi possível carregar ou gerar os dados.")
+
+ 
