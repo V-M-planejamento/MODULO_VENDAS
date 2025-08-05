@@ -969,30 +969,38 @@ if df_data is not None and not df_data.empty:
                 styles = pd.DataFrame('', index=df.index, columns=df.columns)
                 
                 for i, row in df.iterrows():
+                    # Aplicar zebra striping (cor de fundo alternada) para todas as células da linha
+                    cor_fundo = "#fbfbfb" if i % 2 == 0 else '#ffffff'
+                    
                     for col_tuple in df.columns:
+                        # Estilo base com zebra striping
+                        cell_style = f"background-color: {cor_fundo};"
+                        
                         # Aplicar estilo para células de dados
                         if len(col_tuple) == 2 and col_tuple[1] != '':
-                            # Estilo base para todas as células
-                            cell_style = ""
-                            
                             # Dados faltantes
                             if row[col_tuple] == '-':
-                                cell_style = 'color: #999999; font-style: italic;'
+                                cell_style += ' color: #999999; font-style: italic;'
                             else:
                                 # Aplicar cores condicionais para Início/Término Real
                                 if col_tuple[1] in ['Início Real', 'Término Real']:
                                     row_dict = {('UGB', ''): row[('UGB', '')], 
                                             ('Empreendimento', ''): row[('Empreendimento', '')]}
-                                    cell_style = determinar_cor(row_dict, col_tuple)
+                                    cor_condicional = determinar_cor(row_dict, col_tuple)
+                                    if cor_condicional:
+                                        cell_style += f' {cor_condicional}'
                                 
                                 # Estilo para variação de prazo
                                 elif 'VarTerm' in col_tuple[1]:
                                     if '▲' in str(row[col_tuple]):  # Atraso
-                                        cell_style = 'color: #e74c3c; font-weight: 600;'
+                                        cell_style += ' color: #e74c3c; font-weight: 600;'
                                     elif '▼' in str(row[col_tuple]):  # Adiantamento
-                                        cell_style = 'color: #2ecc71; font-weight: 600;'
-                            
-                            styles.at[i, col_tuple] = cell_style
+                                        cell_style += ' color: #2ecc71; font-weight: 600;'
+                        else:
+                            # Para colunas UGB e Empreendimento, manter apenas o fundo zebrado
+                            pass
+                        
+                        styles.at[i, col_tuple] = cell_style
                 
                 return styles
 
@@ -1004,7 +1012,7 @@ if df_data is not None and not df_data.empty:
                     'props': [
                         ('font-size', '12px'),
                         ('font-weight', 'bold'),
-                        ('background-color', '#f8f9fa'),
+                        ('background-color', "#6c6d6d"),
                         ('border-bottom', '2px solid #ddd'),
                         ('text-align', 'center'),
                         ('white-space', 'nowrap')
@@ -1037,7 +1045,7 @@ if df_data is not None and not df_data.empty:
                     'props': [
                         ('font-size', '12px'),
                         ('font-weight', 'bold'),
-                        ('background-color', '#f0f2f6'),
+                        ('background-color', '#6c6d6d'),
                         ('text-align', 'center')
                     ]
                 }
