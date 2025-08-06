@@ -20,7 +20,7 @@ def simple_multiselect_dropdown(
     1. Layout compacto com espaçamento mínimo garantido.
     2. 'Marcar Todos' sempre visível.
     3. Instrução estilizada com ícone, posicionada corretamente.
-    4. Estilo com fundo branco e sem bordas.
+    4. Estilo com fundo branco e bordas arredondadas externas.
     
     Args:
         label (str): Rótulo do filtro.
@@ -47,6 +47,30 @@ def simple_multiselect_dropdown(
         div[data-testid="stTextInput"] {{
             position: relative;
             margin-bottom: 0.5rem;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        div[data-testid="stTextInput"] > div {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        div[data-testid="stTextInput"] > div > input {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        div[data-testid="stTextInput"] input {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        /* Adicionado para garantir que o container do input não tenha borda */
+        div[data-testid="stTextInput"] > div[data-testid="stDecoration"] {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
         }}
 
         /* Container da instrução (Pressione Enter...) */
@@ -62,28 +86,74 @@ def simple_multiselect_dropdown(
         [data-testid="InputInstructions"] span {{ visibility: hidden; }}
         [data-testid="InputInstructions"] span::after {{
             visibility: visible;
-            content: "❗ Pressione Enter para aplicar"; 
+            content: " ! Pressione Enter para aplicar"; 
             display: inline-flex;
             align-items: center;
             font-size: 0.65rem;
-            color: #555;
+            color: #926c05;
             padding: 0.15rem 0.4rem;
-            background-color: #f0f2f6;
+            background-color: #fffce7;
             border-radius: 0.25rem;
             white-space: nowrap;
         }}
 
-        /* Estilos do expander (dropdown) */
+        /* Estilos do expander (dropdown) - Remove todas as bordas */
         div[data-testid="stExpander"] {{
             background-color: white !important;
             border: none !important;
             box-shadow: none !important;
+            border-radius: 10px !important;
+            overflow: hidden;
+            outline: none !important;
         }}
+        
+        div[data-testid="stExpander"] * {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        
+        div[data-testid="stExpander"] > details {{
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }}
+        
         div[data-testid="stExpander"] > details > summary {{
             border: none !important;
             box-shadow: none !important;
             padding: 0.5rem 1rem !important;
+            outline: none !important;
         }}
+        
+        /* Remove todas as bordas do container principal */
+        div[data-testid="stExpander"] > div {{
+            border: none !important;
+        }}
+        
+        /* Remove borda específica do container do campo de pesquisa */
+        div[data-testid="stExpander"] div[data-testid="stVerticalBlock"]:has(div[data-testid="stTextInput"]) {{
+            border: none !important;
+            padding: 0 !impor ant;
+            margin: none !important;
+        }}
+        
+        /* Remove borda do container de texto "Filtre as opções..." */
+        div[data-testid="stExpander"] div[data-testid="stVerticalBlock"]:has(div[data-testid="stMarkdown"]:has(p)) {{
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }}
+        
+        /* Mantém APENAS a borda do container interno dos checkboxes */
+        div[data-testid="stExpander"] div[data-testid="stVerticalBlock")] > div:has(div[data-testid="stCheckbox"] {{
+            border: 1px solid #e0e0e0 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }}
+        
         div[data-testid="stExpander"] > details > summary:hover {{
             background-color: #f5f5f5 !important;
         }}
@@ -93,7 +163,7 @@ def simple_multiselect_dropdown(
             padding: 0.25rem 0 !important;
         }}
         .stCheckbox {{
-            margin-bottom: 0.25rem !important;
+            margin-bottom: none !important;
         }}
         </style>
         """,
@@ -170,8 +240,8 @@ def simple_multiselect_dropdown(
             label_visibility="collapsed"
         )
         
-        # Container com borda para os checkboxes
-        with st.container(border=True):
+        # Container para os checkboxes (a borda será aplicada via CSS)
+        with st.container():
             # Checkbox "Marcar Todos"
             st.checkbox(
                 select_all_text,
