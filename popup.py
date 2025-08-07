@@ -1,6 +1,6 @@
 import streamlit as st
 
-def show_popup():
+def show_welcome_screen():
     """
     Função que exibe um popup em tela cheia com design moderno e card fosco.
     Mantém a mensagem e botão originais, mas com estilização aprimorada.
@@ -157,7 +157,7 @@ def show_popup():
     else:
         return False
 
-def reset_popup():
+def show_welcome_screen():
     """Função para resetar o popup"""
     st.session_state.show_popup = True
 
