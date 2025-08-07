@@ -157,10 +157,11 @@ def show_welcome_screen():
     else:
         return False
 
-def show_welcome_screen():
+def reset_popup():
     """Função para resetar o popup"""
     st.session_state.show_popup = True
 
 def hide_popup():
     """Função para esconder o popup programaticamente"""
     st.session_state.show_popup = False
+
