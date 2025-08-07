@@ -86,7 +86,7 @@ def simple_multiselect_dropdown(
         [data-testid="InputInstructions"] span {{ visibility: hidden; }}
         [data-testid="InputInstructions"] span::after {{
             visibility: visible;
-            content: " ! Pressione Enter para aplicar"; 
+            content: "Pressione Enter para aplicar!"; 
             display: inline-flex;
             align-items: center;
             font-size: 0.65rem;
