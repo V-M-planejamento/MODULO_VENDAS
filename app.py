@@ -7,9 +7,9 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
-import streamlit as st
 from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
-from popup import show_popup  # Importando o sistema de popup
+from popup import show_welcome_screen  # Importando o sistema de popup
+from st_aggrid import AgGrid
 
 # Tenta importar os scripts de processamento de dados.
 try:
@@ -372,7 +372,9 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
     plt.close(figura)
-    
+
+#========================================================================================================
+
 # --- Lógica Principal do App Streamlit (sem alterações) ---
 st.set_page_config(layout="wide", page_title="Dashboard de Gantt Comparativo")
 
@@ -448,7 +450,7 @@ def criar_dados_exemplo():
 # --- Interface do Streamlit ---
 
 # Verificar se o popup deve ser exibido
-if show_popup():
+if show_welcome_screen():
     st.stop()  # Para a execução do resto do app enquanto o popup está ativo
 
 # CSS customizado
@@ -812,26 +814,6 @@ if df_data is not None and not df_data.empty:
                 )
                 df_detalhes.loc[mask, 'Conclusao_Valida'] = True
 
-            # --- DATA AGGREGATION ---
-            agg_dict = {
-                'Inicio_Prevista': ('Inicio_Prevista', 'min'), 
-                'Termino_Prevista': ('Termino_Prevista', 'max'),
-                'Inicio_Real': ('Inicio_Real', 'min'), 
-                'Termino_Real': ('Termino_Real', 'max'),
-                'Concluido_Valido': ('Conclusao_Valida', 'any')
-            }
-            
-            if '% concluído' in df_detalhes.columns:
-                agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
-                if not df_detalhes.empty and df_detalhes['% concluído'].max() <= 1:
-                    df_detalhes['% concluído'] *= 100
-
-            # First aggregate without variation
-            df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
-            
-            # Then calculate variation consistently with tab1
-            df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
-
             # --- SORTING OPTIONS ---
             st.write("---")
             col1, col2 = st.columns(2)
@@ -842,7 +824,6 @@ if df_data is not None and not df_data.empty:
                 'Empreendimento (A-Z)': ['Empreendimento'], 
                 'Data de Início Previsto (Mais antiga)': ['Inicio_Prevista'],
                 'Data de Término Previsto (Mais recente)': ['Termino_Prevista'], 
-                'Variação de Prazo (Pior para Melhor)': ['Var. Term']
             }
             
             with col1:
@@ -860,15 +841,82 @@ if df_data is not None and not df_data.empty:
                     key="ordem_radio"
                 )
 
-            # Apply sorting
+            # NOVA ABORDAGEM: Ordenar ANTES da agregação para preservar ordem cronológica
             ordem_etapas_completas = list(sigla_para_nome_completo.keys())
+            df_detalhes['Etapa_Ordem'] = df_detalhes['Etapa'].apply(
+                lambda x: ordem_etapas_completas.index(x) if x in ordem_etapas_completas else len(ordem_etapas_completas)
+            )
+            
+            # Para ordenações por data, ordenar os dados originais primeiro
+            if classificar_por in ['Data de Início Previsto (Mais antiga)', 'Data de Término Previsto (Mais recente)']:
+                coluna_data = 'Inicio_Prevista' if 'Início' in classificar_por else 'Termino_Prevista'
+                
+                # Ordenar os dados originais pela data escolhida
+                df_detalhes_ordenado = df_detalhes.sort_values(
+                    by=[coluna_data, 'UGB', 'Empreendimento', 'Etapa'], 
+                    ascending=[ordem == 'Crescente', True, True, True],
+                    na_position='last'
+                )
+                
+                # Criar um mapeamento de ordem para UGB/Empreendimento baseado na primeira ocorrência
+                ordem_ugb_emp = df_detalhes_ordenado.groupby(['UGB', 'Empreendimento']).first().reset_index()
+                ordem_ugb_emp = ordem_ugb_emp.sort_values(
+                    by=coluna_data, 
+                    ascending=(ordem == 'Crescente'),
+                    na_position='last'
+                )
+                ordem_ugb_emp['ordem_index'] = range(len(ordem_ugb_emp))
+                
+                # Mapear a ordem de volta para os dados originais
+                df_detalhes = df_detalhes.merge(
+                    ordem_ugb_emp[['UGB', 'Empreendimento', 'ordem_index']], 
+                    on=['UGB', 'Empreendimento'], 
+                    how='left'
+                )
+                
+            # --- DATA AGGREGATION ---
+            agg_dict = {
+                'Inicio_Prevista': ('Inicio_Prevista', 'min'), 
+                'Termino_Prevista': ('Termino_Prevista', 'max'),
+                'Inicio_Real': ('Inicio_Real', 'min'), 
+                'Termino_Real': ('Termino_Real', 'max'),
+                'Concluido_Valido': ('Conclusao_Valida', 'any')
+            }
+            
+            if '% concluído' in df_detalhes.columns:
+                agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
+                if not df_detalhes.empty and df_detalhes['% concluído'].max() <= 1:
+                    df_detalhes['% concluído'] *= 100
+
+            # Adicionar ordem_index à agregação se existir
+            if 'ordem_index' in df_detalhes.columns:
+                agg_dict['ordem_index'] = ('ordem_index', 'first')
+
+            # Aggregate data
+            df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
+            
+            # Calculate variation
+            df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
+
+            # Adicionar Etapa_Ordem
             df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(
                 lambda x: ordem_etapas_completas.index(x) if x in ordem_etapas_completas else len(ordem_etapas_completas)
             )
-            df_ordenado = df_agregado.sort_values(
-                by=opcoes_classificacao[classificar_por], 
-                ascending=(ordem == 'Crescente')
-            )
+
+            # Aplicar ordenação baseada na escolha do usuário
+            if classificar_por in ['Data de Início Previsto (Mais antiga)', 'Data de Término Previsto (Mais recente)']:
+                # Para ordenações por data, usar a ordem_index criada anteriormente
+                df_ordenado = df_agregado.sort_values(
+                    by=['ordem_index', 'UGB', 'Empreendimento', 'Etapa_Ordem'], 
+                    ascending=[True, True, True, True]
+                )
+            else:
+                # Para outras ordenações, usar o método original
+                df_ordenado = df_agregado.sort_values(
+                    by=opcoes_classificacao[classificar_por], 
+                    ascending=(ordem == 'Crescente')
+                )
+            
             st.write("---")
 
             # --- PIVOT TABLE CREATION ---
@@ -890,6 +938,16 @@ if df_data is not None and not df_data.empty:
                             colunas_ordenadas.append((tipo, etapa))
             
             df_final = df_pivot[colunas_ordenadas].reset_index()
+
+            # Para ordenações por data, reordenar o df_final baseado na ordem correta
+            if classificar_por in ['Data de Início Previsto (Mais antiga)', 'Data de Término Previsto (Mais recente)']:
+                # Obter ordem única de UGB/Empreendimento do df_ordenado
+                ordem_linhas_final = df_ordenado[['UGB', 'Empreendimento']].drop_duplicates().reset_index(drop=True)
+                
+                # Reordenar df_final
+                df_final = df_final.set_index(['UGB', 'Empreendimento'])
+                df_final = df_final.reindex(pd.MultiIndex.from_frame(ordem_linhas_final))
+                df_final = df_final.reset_index()
 
             # --- COLUMN RENAMING FOR MULTIINDEX ---
             novos_nomes = []
@@ -954,7 +1012,7 @@ if df_data is not None and not df_data.empty:
                 # Padrão para outras colunas ou casos não especificados
                 return ""
 
-            # --- DATA FORMATTING ---
+            # --- DATA FORMATTING (APLICAR APENAS APÓS ORDENAÇÃO) ---
             df_formatado = df_final.copy()
             for col_tuple in df_formatado.columns:
                 if len(col_tuple) == 2 and col_tuple[1] != '':  # Ignorar colunas sem segundo nível
@@ -1092,4 +1150,3 @@ if df_data is not None and not df_data.empty:
 else:
     st.error("❌ Não foi possível carregar ou gerar os dados.")
 
- 
