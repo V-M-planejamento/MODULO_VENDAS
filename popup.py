@@ -1,9 +1,12 @@
 import streamlit as st
+import base64
+import os
 
 def show_welcome_screen():
     """
-    Função que exibe um popup em tela cheia com design moderno e card fosco.
-    Mantém a mensagem e botão originais, mas com estilização aprimorada.
+    Função que exibe um popup em tela cheia usando o SVG como fundo.
+    Remove completamente o card/quadrado e o título, mantendo apenas o SVG e o botão.
+    Posiciona o botão no canto inferior direito da tela.
     """
     
     # Inicializar o estado do popup se não existir
@@ -12,143 +15,170 @@ def show_welcome_screen():
     
     # Se o popup deve ser exibido
     if st.session_state.show_popup:
-        # CSS para criar o popup em tela cheia com card fosco
-        popup_css = """
+        
+        # Função para carregar e codificar o SVG
+        def load_svg_as_base64():
+            # Tentar diferentes caminhos para o SVG
+            possible_paths = [
+                '31123505_7769742.psd(10).svg',  # Mesmo diretório do script
+                './31123505_7769742.psd(10).svg',  # Caminho relativo
+                '/home/ubuntu/31123505_7769742.psd(10).svg',  # Diretório atual
+                '/home/ubuntu/upload/31123505_7769742.psd(10).svg',  # Caminho absoluto
+                os.path.join(os.path.dirname(__file__), '31123505_7769742.psd(10).svg')  # Diretório do script
+            ]
+            
+            for svg_path in possible_paths:
+                if os.path.exists(svg_path):
+                    try:
+                        with open(svg_path, 'rb') as svg_file:
+                            svg_content = svg_file.read()
+                            return base64.b64encode(svg_content).decode('utf-8')
+                    except Exception as e:
+                        continue
+            
+            # Se não conseguir carregar, retorna uma string vazia
+            return ""
+        
+        svg_base64 = load_svg_as_base64()
+        
+        # CSS para criar o popup em tela cheia com SVG como fundo
+        popup_css = f"""
         <style>
-        /* Fundo com gradiente sutil */
-        .popup-overlay {
+        /* Reset completo */
+        html, body, .stApp {{
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+        }}
+        
+        /* Esconder completamente a interface do Streamlit */
+        .main .block-container,
+        header,
+        .stApp > div:first-child,
+        .stApp > header,
+        .stDeployButton,
+        .stDecoration,
+        .stToolbar {{
+            display: none !important;
+        }}
+        
+        /* Container principal do popup ocupando toda a tela */
+        .popup-overlay {{
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            {f"background-image: url('data:image/svg+xml;base64,{svg_base64}');" if svg_base64 else "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"}
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
             z-index: 9998;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+            overflow: hidden;
+            object-fit: contain;  /* Nova propriedade */
+        }}
+        /* Garantir que o SVG não seja cortado e mantenha proporção */
+        .popup-overlay::before {{
+            content: '';
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: inherit;
+            z-index: -1;
+        }}
         
-        /* Card central fosco com efeito glassmorphism */
-        .popup-content {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 50px 60px 40px 60px;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 80%;
-            position: relative;
-            z-index: 9999;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        /* Título com gradiente */
-        .popup-title {
-            font-size: 2.2em;
-            margin-bottom: 20px;
-            font-weight: 700;
-            background: linear-gradient(45deg, #2c3e50, #3498db);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            line-height: 1.2;
-        }
-        
-        /* Mensagem estilizada */
-        .popup-message {
-            font-size: 1.1em;
-            color: #555;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        
-        /* Esconder outros elementos do Streamlit */
-        .main .block-container {
-            display: none !important;
-        }
-        
-        header {
-            display: none !important;
-        }
-        
-        .stApp > div:first-child {
-            display: none !important;
-        }
-        
-        /* Estilizar o botão do Streamlit */
-        .stButton > button {
-            background: linear-gradient(45deg, #3498db, #2c3e50) !important;
+        /* Estilização do botão */
+        .stButton > button {{
+            background: linear-gradient(45deg, #ff8c00, #ff6b00) !important;
             color: white !important;
             border: none !important;
-            padding: 14px 32px !important;
-            font-size: 1.1em !important;
+            padding: 18px 36px !important;
+            font-size: 1.2em !important;
             border-radius: 50px !important;
             cursor: pointer !important;
             transition: all 0.3s ease !important;
             width: auto !important;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3) !important;
-            font-weight: 500 !important;
-            letter-spacing: 0.5px !important;
-        }
+            box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4) !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.8px !important;
+            min-width: 220px !important;
+            text-transform: uppercase !important;
+        }}
         
-        .stButton > button:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4) !important;
-        }
+        .stButton > button:hover {{
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 25px rgba(255, 140, 0, 0.6) !important;
+            background: linear-gradient(45deg, #ff9500, #ff7500) !important;
+        }}
         
-        .stButton > button:focus {
+        .stButton > button:active {{
+            transform: translateY(-1px) !important;
+        }}
+        
+        .stButton > button:focus {{
             outline: none !important;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3) !important;
-        }
+            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.3) !important;
+        }}
         
-        /* Posicionar o botão dentro do popup */
-        .stButton {
-            position: relative !important;
-            margin: 0 auto !important;
-            display: block !important;
-            z-index: 10000 !important;
+        /* Garantir posicionamento fixo do botão no canto inferior direito */
+        .stButton {{
+            position: fixed !important;
+            bottom: 30px !important;
+            left: 1270px !important;
+            z-index: 10001 !important;
+            margin: 0 !important;
             transform: none !important;
-            top: auto !important;
-            left: auto !important;
-        }
+        }}
         
-        /* Efeito de marca d'água no fundo */
-        .watermark {
-            position: absolute;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: rgba(0, 0, 0, 0.1);
-            font-size: 12px;
-            font-weight: bold;
-        }
+        /* Responsividade para dispositivos móveis */
+        @media (max-width: 768px) {{
+            .stButton {{
+                bottom: 20px !important;
+                left: 20px !important;  /* Alterado de right para left */
+            }}
+            
+            .stButton > button {{
+                padding: 16px 28px !important;
+                font-size: 1.1em !important;
+                min-width: 180px !important;
+            }}
+        }}
+
+        @media (max-width: 480px) {{
+            .stButton {{
+                bottom: 15px !important;
+                left: 15px !important;  /* Alterado de right para left */
+            }}
+            
+            .stButton > button {{
+                padding: 14px 24px !important;
+                font-size: 1em !important;
+                min-width: 160px !important;
+            }}
+        }}
         </style>
         """
         
         st.markdown(popup_css, unsafe_allow_html=True)
         
-        # Criar o popup HTML
+        # Criar o popup HTML sem título
         popup_html = """
         <div class="popup-overlay">
-            <div class="popup-content">
-                <h1 class="popup-title">🎯 Bem-vindo!</h1>
-                <p class="popup-message">
-                    Este é o seu sistema de gestão do Modulo Vendas.<br>
-                    Clique no botão abaixo para acessar o painel principal.
-                </p>
-                <div class="watermark">VIANA & MOURA CONSTRUÇÕES</div>
-            </div>
         </div>
         """
         
         st.markdown(popup_html, unsafe_allow_html=True)
         
-        # Botão para fechar o popup usando Streamlit nativo
+        # Debug: Mostrar se o SVG foi carregado (apenas para desenvolvimento)
+        if not svg_base64:
+            st.error("⚠️ SVG não foi carregado. Certifique-se de que o arquivo '31123505_7769742.psd(10).svg' está na mesma pasta do script.")
+        
+        # Botão para fechar o popup - posicionado no canto inferior direito
         if st.button("🚀 Acessar Painel", key="close_popup_btn", help="Clique para acessar o painel principal"):
             st.session_state.show_popup = False
             st.rerun()
@@ -164,4 +194,27 @@ def reset_popup():
 def hide_popup():
     """Função para esconder o popup programaticamente"""
     st.session_state.show_popup = False
+
+# Exemplo de uso
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="Dashboard - Módulo de Venda",
+        page_icon="🏠",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
+    
+    # Mostrar o popup de boas-vindas
+    if show_welcome_screen():
+        # O popup está sendo exibido
+        pass
+    else:
+        # Conteúdo principal da aplicação após fechar o popup
+        st.title("🏠 Dashboard - Módulo de Venda")
+        st.write("Bem-vindo ao sistema!")
+        
+        # Botão para mostrar o popup novamente
+        if st.button("Mostrar Popup Novamente"):
+            reset_popup()
+            st.rerun()
 
