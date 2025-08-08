@@ -18,13 +18,12 @@ def show_welcome_screen():
         
         # Função para carregar e codificar o SVG
         def load_svg_as_base64():
-            # Tentar diferentes caminhos para o SVG
             possible_paths = [
-                '31123505_7769742.psd(10).svg',  # Mesmo diretório do script
-                './31123505_7769742.psd(10).svg',  # Caminho relativo
-                '/home/ubuntu/31123505_7769742.psd(10).svg',  # Diretório atual
-                '/home/ubuntu/upload/31123505_7769742.psd(10).svg',  # Caminho absoluto
-                os.path.join(os.path.dirname(__file__), '31123505_7769742.psd(10).svg')  # Diretório do script
+                '31123505_7769742.psd(10).svg',
+                './31123505_7769742.psd(10).svg',
+                '/home/ubuntu/31123505_7769742.psd(10).svg',
+                '/home/ubuntu/upload/31123505_7769742.psd(10).svg',
+                os.path.join(os.path.dirname(__file__), '31123505_7769742.psd(10).svg')
             ]
             
             for svg_path in possible_paths:
@@ -35,16 +34,13 @@ def show_welcome_screen():
                             return base64.b64encode(svg_content).decode('utf-8')
                     except Exception as e:
                         continue
-            
-            # Se não conseguir carregar, retorna uma string vazia
             return ""
         
         svg_base64 = load_svg_as_base64()
         
-        # CSS para criar o popup em tela cheia com SVG como fundo
+        # CSS com as animações
         popup_css = f"""
         <style>
-        /* Reset completo */
         html, body, .stApp {{
             margin: 0 !important;
             padding: 0 !important;
@@ -52,7 +48,6 @@ def show_welcome_screen():
             overflow: hidden !important;
         }}
         
-        /* Esconder completamente a interface do Streamlit */
         .main .block-container,
         header,
         .stApp > div:first-child,
@@ -63,7 +58,16 @@ def show_welcome_screen():
             display: none !important;
         }}
         
-        /* Container principal do popup ocupando toda a tela */
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: scale(0.95); }}
+            to {{ opacity: 1; transform: scale(1); }}
+        }}
+        
+        @keyframes fadeOut {{
+            from {{ opacity: 0; transform: scale(0.85); }}
+            to {{ opacity: 0; transform: scale(0.95); }}
+        }}
+        
         .popup-overlay {{
             position: fixed;
             top: 0;
@@ -77,9 +81,14 @@ def show_welcome_screen():
             z-index: 9998;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
-            object-fit: contain;  /* Nova propriedade */
+            object-fit: contain;
+            animation: fadeIn 0.5s ease-out forwards;
         }}
-        /* Garantir que o SVG não seja cortado e mantenha proporção */
+        
+        .popup-exit {{
+            animation: fadeOut 0.5s ease-in forwards !important;
+        }}
+        
         .popup-overlay::before {{
             content: '';
             display: block;
@@ -92,7 +101,6 @@ def show_welcome_screen():
             z-index: -1;
         }}
         
-        /* Estilização do botão */
         .stButton > button {{
             background: linear-gradient(45deg, #ff8c00, #ff6b00) !important;
             color: white !important;
@@ -108,6 +116,8 @@ def show_welcome_screen():
             letter-spacing: 0.8px !important;
             min-width: 220px !important;
             text-transform: uppercase !important;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-out 0.3s forwards;
         }}
         
         .stButton > button:hover {{
@@ -116,16 +126,6 @@ def show_welcome_screen():
             background: linear-gradient(45deg, #ff9500, #ff7500) !important;
         }}
         
-        .stButton > button:active {{
-            transform: translateY(-1px) !important;
-        }}
-        
-        .stButton > button:focus {{
-            outline: none !important;
-            box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.3) !important;
-        }}
-        
-        /* Garantir posicionamento fixo do botão no canto inferior direito */
         .stButton {{
             position: fixed !important;
             bottom: 30px !important;
@@ -135,11 +135,10 @@ def show_welcome_screen():
             transform: none !important;
         }}
         
-        /* Responsividade para dispositivos móveis */
         @media (max-width: 768px) {{
             .stButton {{
                 bottom: 20px !important;
-                left: 20px !important;  /* Alterado de right para left */
+                left: 20px !important;
             }}
             
             .stButton > button {{
@@ -152,7 +151,7 @@ def show_welcome_screen():
         @media (max-width: 480px) {{
             .stButton {{
                 bottom: 15px !important;
-                left: 15px !important;  /* Alterado de right para left */
+                left: 15px !important;
             }}
             
             .stButton > button {{
@@ -165,21 +164,21 @@ def show_welcome_screen():
         """
         
         st.markdown(popup_css, unsafe_allow_html=True)
+        st.markdown("""<div class="popup-overlay" id="popupOverlay"></div>""", unsafe_allow_html=True)
         
-        # Criar o popup HTML sem título
-        popup_html = """
-        <div class="popup-overlay">
-        </div>
-        """
-        
-        st.markdown(popup_html, unsafe_allow_html=True)
-        
-        # Debug: Mostrar se o SVG foi carregado (apenas para desenvolvimento)
         if not svg_base64:
             st.error("⚠️ SVG não foi carregado. Certifique-se de que o arquivo '31123505_7769742.psd(10).svg' está na mesma pasta do script.")
         
-        # Botão para fechar o popup - posicionado no canto inferior direito
+        # Botão modificado para funcionar corretamente
         if st.button("🚀 Acessar Painel", key="close_popup_btn", help="Clique para acessar o painel principal"):
+            # Adiciona a animação de saída
+            st.markdown("""
+            <script>
+            document.getElementById('popupOverlay').classList.add('popup-exit');
+            </script>
+            """, unsafe_allow_html=True)
+            
+            # Fecha o popup após a animação completar
             st.session_state.show_popup = False
             st.rerun()
         
@@ -188,14 +187,11 @@ def show_welcome_screen():
         return False
 
 def reset_popup():
-    """Função para resetar o popup"""
     st.session_state.show_popup = True
 
 def hide_popup():
-    """Função para esconder o popup programaticamente"""
     st.session_state.show_popup = False
 
-# Exemplo de uso
 if __name__ == "__main__":
     st.set_page_config(
         page_title="Dashboard - Módulo de Venda",
@@ -204,17 +200,12 @@ if __name__ == "__main__":
         initial_sidebar_state="collapsed"
     )
     
-    # Mostrar o popup de boas-vindas
     if show_welcome_screen():
-        # O popup está sendo exibido
         pass
     else:
-        # Conteúdo principal da aplicação após fechar o popup
         st.title("🏠 Dashboard - Módulo de Venda")
         st.write("Bem-vindo ao sistema!")
         
-        # Botão para mostrar o popup novamente
         if st.button("Mostrar Popup Novamente"):
             reset_popup()
             st.rerun()
-
