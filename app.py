@@ -273,7 +273,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
         # Barra Prevista Contínua
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
-            duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
+            duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 3
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
                            height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
                            antialiased=False)
@@ -282,7 +282,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         # Barra Real Contínua
         if tipo_visualizacao in ["Ambos", "Real"] and pd.notna(linha['Inicio_Real']):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
-            duracao = (termino_real - linha['Inicio_Real']).days + 1
+            duracao = (termino_real - linha['Inicio_Real']).days + 3
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
                            height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
                            antialiased=False)
@@ -331,47 +331,47 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         if not df_assinatura.empty:
             data_meta = None
             tipo_meta = ""
-            if pd.notna(df_assinatura["Termino_Prevista"].iloc[0]):
-                data_meta = df_assinatura["Termino_Prevista"].iloc[0]
+            if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):  # Alterado para Inicio_Prevista
+                data_meta = df_assinatura["Inicio_Prevista"].iloc[0]
                 tipo_meta = "Prevista"
-            elif pd.notna(df_assinatura["Termino_Real"].iloc[0]):
-                data_meta = df_assinatura["Termino_Real"].iloc[0]
+            elif pd.notna(df_assinatura["Inicio_Real"].iloc[0]):  # Alterado para Inicio_Real
+                data_meta = df_assinatura["Inicio_Real"].iloc[0]
                 tipo_meta = "Real"
 
             if data_meta is not None:
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, 
-                                   linestyle="--", linewidth=1.7, alpha=0.7)
+                                linestyle="--", linewidth=1.7, alpha=0.7)
                 
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
-                               f"Meta {tipo_meta}\nAssinatura: {data_meta.strftime('%d/%m/%y')}", 
-                               color=StyleConfig.COR_META_ASSINATURA, fontsize=10, 
-                               ha="center", va="top",
-                               bbox=dict(facecolor="white", alpha=0.8, 
+                            f"Meta {tipo_meta}\nAssinatura: {data_meta.strftime('%d/%m/%y')}", 
+                            color=StyleConfig.COR_META_ASSINATURA, fontsize=10, 
+                            ha="center", va="top",
+                            bbox=dict(facecolor="white", alpha=0.8, 
                                         edgecolor=StyleConfig.COR_META_ASSINATURA,
                                         boxstyle="round,pad=0.5"))
 
-    eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
-    eixo_gantt.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-    eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))
-    plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
+        eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
+        eixo_gantt.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+        eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))
+        plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
 
-    handles_legenda = [
-        Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
-        Patch(color=StyleConfig.COR_REAL, label='Real')
-    ]
+        handles_legenda = [
+            Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
+            Patch(color=StyleConfig.COR_REAL, label='Real')
+        ]
 
-    eixo_gantt.legend(
-        handles=handles_legenda,
-        loc='upper center',
-        bbox_to_anchor=(1.1, 1),
-        frameon=False,
-        borderaxespad=0.1
-    )
+        eixo_gantt.legend(
+            handles=handles_legenda,
+            loc='upper center',
+            bbox_to_anchor=(1.1, 1),
+            frameon=False,
+            borderaxespad=0.1
+        )
 
-    plt.tight_layout(rect=[0, 0.03, 1, 1])
-    st.pyplot(figura)
-    plt.close(figura)
+        plt.tight_layout(rect=[0, 0.03, 1, 1])
+        st.pyplot(figura)
+        plt.close(figura)
 
 #========================================================================================================
 
