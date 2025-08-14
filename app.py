@@ -73,6 +73,31 @@ def converter_porcentagem(valor):
 def formatar_data(data):
     return data.strftime("%d/%m/%y") if pd.notna(data) else "N/D"
 
+# 1. Implementação da função calcular_porcentagem_correta
+def calcular_porcentagem_correta(grupo):
+    """Calcula a porcentagem correta considerando todas as linhas da etapa"""
+    if '% concluído' not in grupo.columns:
+        return 0.0
+    
+    # Converter e filtrar valores válidos
+    porcentagens = grupo['% concluído'].astype(str).apply(converter_porcentagem)
+    porcentagens = porcentagens[(porcentagens >= 0) & (porcentagens <= 100)]
+    
+    if len(porcentagens) == 0:
+        return 0.0
+    
+    # Verificar conclusão total (100% só quando todas as linhas estiverem completas)
+    todas_concluidas = all(p == 100 for p in porcentagens)
+    
+    if todas_concluidas:
+        return 100.0
+    else:
+        # Desconsiderar células vazias ou nulas para a média
+        porcentagens_validas = porcentagens[pd.notna(porcentagens)]
+        if len(porcentagens_validas) == 0:
+            return 0.0
+        return round(porcentagens_validas.mean(), 1)
+
 sigla_para_nome_completo = {
     'DM': '1. DEFINIÇÃO DO MÓDULO',
     'DOC': '2. DOCUMENTAÇÃO',
@@ -126,13 +151,20 @@ def gerar_gantt(df, tipo_visualizacao="Ambos"):
     if 'Empreendimento' in df.columns:
         df['Empreendimento'] = df['Empreendimento'].apply(abreviar_nome)
 
+    # --- 2. Aplicação da Porcentagem Corrigida ---
+    if '% concluído' in df.columns:
+        df_porcentagem = df.groupby(['Empreendimento', 'Etapa']).apply(calcular_porcentagem_correta).reset_index()
+        df_porcentagem.columns = ['Empreendimento', 'Etapa', '%_corrigido']
+        df = pd.merge(df, df_porcentagem, on=['Empreendimento', 'Etapa'], how='left')
+        df['% concluído'] = df['%_corrigido'].fillna(0)
+        df.drop('%_corrigido', axis=1, inplace=True)
+    else:
+        df['% concluído'] = 0.0
+
     # --- Preparação e Ordenação dos Dados ---
     for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors='coerce')
-
-    if '% concluído' not in df.columns: df['% concluído'] = 0.0
-    else: df['% concluído'] = df['% concluído'].apply(converter_porcentagem)
 
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
