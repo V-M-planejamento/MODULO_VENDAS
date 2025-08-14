@@ -153,43 +153,49 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
-    # Modificação: Remover "CONDOMINIO " dos nomes quando apenas uma etapa está sendo filtrada
+    # Modificação: A lógica de ordenação agora diferencia os dois cenários principais.
     if num_empreendimentos > 1 and num_etapas == 1:
+        # CASO NOVO: Múltiplos empreendimentos, uma etapa. Ordena por data.
         df['Empreendimento'] = df['Empreendimento'].str.replace('CONDOMINIO ', '', regex=False)
-        if tipo_visualizacao == "Real":
-            df = df.sort_values('Inicio_Real', ascending=True)
-        else:
-            df = df.sort_values('Inicio_Prevista', ascending=True)
+        sort_col = 'Inicio_Real' if tipo_visualizacao == "Real" else 'Inicio_Prevista'
+        df = df.sort_values(by=sort_col, ascending=True, na_position='last').reset_index(drop=True)
     else:
+        # CASO ORIGINAL: Um empreendimento, múltiplas etapas. Ordena por etapa.
         ordem_etapas = list(sigla_para_nome_completo.keys())
         df['Etapa_Ordem'] = df['Etapa'].apply(lambda x: ordem_etapas.index(x) if x in ordem_etapas else len(ordem_etapas))
-        df = df.sort_values(['Empreendimento', 'Etapa_Ordem'])
+        df = df.sort_values(['Empreendimento', 'Etapa_Ordem']).reset_index(drop=True)
 
     hoje = pd.Timestamp.now()
 
     # --- Lógica de Posicionamento ---
     rotulo_para_posicao = {}
     posicao = 0
-    empreendimentos_unicos = df['Empreendimento'].unique()
-    for empreendimento in empreendimentos_unicos:
-        if num_empreendimentos > 1 and num_etapas == 1:
-             rotulo = empreendimento
-             rotulo_para_posicao[rotulo] = posicao
-             posicao += 1
-        else:
+    
+    if num_empreendimentos > 1 and num_etapas == 1:
+        # Para o caso novo, cada linha é um empreendimento.
+        for rotulo in df['Empreendimento'].unique():
+            rotulo_para_posicao[rotulo] = posicao
+            posicao += 1
+        df['Posicao'] = df['Empreendimento'].map(rotulo_para_posicao)
+    else:
+        # Para o caso original, as linhas são agrupadas por empreendimento e etapa.
+        empreendimentos_unicos = df['Empreendimento'].unique()
+        for empreendimento in empreendimentos_unicos:
             etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento]['Etapa'].unique()
             for etapa in etapas_do_empreendimento:
                 rotulo = f'{empreendimento}||{etapa}'
                 rotulo_para_posicao[rotulo] = posicao
                 posicao += 1
-        if num_empreendimentos > 1 and num_etapas > 1:
-            posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS / 2
-
-    if num_empreendimentos > 1 and num_etapas == 1:
-        df['Posicao'] = df['Empreendimento'].map(rotulo_para_posicao)
-    else:
+            # O espaço entre empreendimentos só faz sentido se houver mais de um no mesmo gráfico.
+            if len(empreendimentos_unicos) > 1:
+                 posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS / 2
         df['Posicao'] = (df['Empreendimento'] + '||' + df['Etapa']).map(rotulo_para_posicao)
+
     df.dropna(subset=['Posicao'], inplace=True)
+    if df.empty:
+        # Adiciona um aviso se não houver dados para plotar após o processamento
+        st.warning("Não há dados válidos para plotar no gráfico após o processamento.")
+        return
 
     # --- Configuração da Figura ---
     num_linhas = len(rotulo_para_posicao)
@@ -216,7 +222,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         
         if not (num_empreendimentos > 1 and num_etapas == 1) and linha['Empreendimento'] != empreendimento_atual:
             empreendimento_atual = linha['Empreendimento']
-            # Modificação: Remover "CONDOMINIO " também dos cabeçalhos
             nome_formatado = empreendimento_atual.replace('CONDOMINIO ', '')
             y_cabecalho = y_pos - (StyleConfig.ALTURA_GANTT_POR_ITEM / 2) - 0.2
             eixo_tabela.text(0.5, y_cabecalho, nome_formatado,
@@ -237,52 +242,38 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         percentual = linha['% concluído']
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
-        hoje = pd.Timestamp.now()
-
+        
+        cor_texto = "#000000"
+        cor_caixa = estilo_celula['facecolor']
         if percentual == 100:
             if pd.notna(termino_real) and pd.notna(termino_previsto):
                 if termino_real < termino_previsto:
-                    cor_texto = "#2EAF5B"  # Verde - concluído antes do prazo
-                    cor_caixa = "#e6f5eb"
+                    cor_texto, cor_caixa = "#2EAF5B", "#e6f5eb"
                 elif termino_real > termino_previsto:
-                    cor_texto = "#C30202"  # Vermelho - concluído com atraso
-                    cor_caixa = "#fae6e6"
-                else:
-                    cor_texto = "#000000"  # Preto - concluído exatamente no prazo
-                    cor_caixa = estilo_celula['facecolor']
-            else:
-                cor_texto = "#000000"  # Preto - concluído mas sem dados completos
-                cor_caixa = estilo_celula['facecolor']
-        elif percentual < 100:
-            if pd.notna(termino_real) and (termino_real < hoje):
-                cor_texto = "#A38408"  # Amarelo - atrasado na execução real
-                cor_caixa = "#faf3d9"
-            else:
-                cor_texto = "#000000"  # Preto - em andamento normal
-                cor_caixa = estilo_celula['facecolor']
+                    cor_texto, cor_caixa = "#C30202", "#fae6e6"
+        elif pd.notna(termino_previsto) and (termino_previsto < hoje):
+            cor_texto, cor_caixa = "#A38408", "#faf3d9"
+            
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         eixo_tabela.text(0.88, y_pos, f"{percentual:.0f}%", va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
 
     # --- Desenho das Barras ---
     datas_relevantes = []
-
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
         ALTURA_BARRA = StyleConfig.ALTURA_BARRA_GANTT
-        ESPACAMENTO = StyleConfig.ALTURA_BARRA_GANTT * 0.5
+        ESPACAMENTO = 0 if tipo_visualizacao != "Ambos" else StyleConfig.ALTURA_BARRA_GANTT * 0.5
 
-        # Barra Prevista Contínua
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
-            duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 3
+            duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 3  # +3 dias para melhor visualização
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
                            height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
-        # Barra Real Contínua
         if tipo_visualizacao in ["Ambos", "Real"] and pd.notna(linha['Inicio_Real']):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
-            duracao = (termino_real - linha['Inicio_Real']).days + 3
+            duracao = (termino_real - linha['Inicio_Real']).days + 3  # +3 dias para melhor visualização
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
                            height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
                            antialiased=False)
@@ -290,9 +281,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
     # --- Ajuste Automático dos Limites do Gráfico ---
     if datas_relevantes:
-        # Converter para Timestamp e remover valores NaT
         datas_validas = [pd.Timestamp(d) for d in datas_relevantes if pd.notna(d)]
-        
         if datas_validas:
             data_min = min(datas_validas)
             data_max = max(datas_validas)
@@ -312,6 +301,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
     # --- Formatação Final dos Eixos ---
     if not rotulo_para_posicao:
         st.pyplot(figura)
+        plt.close(figura)
         return
 
     max_pos = max(rotulo_para_posicao.values())
@@ -322,19 +312,19 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         eixo_gantt.axhline(y=pos + 0.5, color='#dcdcdc', linestyle='-', alpha=0.7, linewidth=0.8)
     
     eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
-    eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left')
+    eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left', va='bottom')
 
+    # A lógica da meta de assinatura é aplicada apenas no cenário de um único empreendimento
     if num_empreendimentos == 1 and num_etapas > 1:
         empreendimento = df["Empreendimento"].unique()[0]
         df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ASS")]
-        
         if not df_assinatura.empty:
             data_meta = None
             tipo_meta = ""
-            if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):  # Alterado para Inicio_Prevista
+            if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):
                 data_meta = df_assinatura["Inicio_Prevista"].iloc[0]
                 tipo_meta = "Prevista"
-            elif pd.notna(df_assinatura["Inicio_Real"].iloc[0]):  # Alterado para Inicio_Real
+            elif pd.notna(df_assinatura["Inicio_Real"].iloc[0]):
                 data_meta = df_assinatura["Inicio_Real"].iloc[0]
                 tipo_meta = "Real"
 
@@ -351,28 +341,29 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
                                         edgecolor=StyleConfig.COR_META_ASSINATURA,
                                         boxstyle="round,pad=0.5"))
 
-        eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
-        eixo_gantt.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
-        eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))
-        plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')
+    # --- Formatação das Datas no Eixo X (Mantido como no original) ---
+    eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
+    eixo_gantt.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+    eixo_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%m/%y'))  # Formato MM/AA como no original
+    plt.setp(eixo_gantt.get_xticklabels(), rotation=90, ha='center')  # Rotação de 90 graus como no original
 
-        handles_legenda = [
-            Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
-            Patch(color=StyleConfig.COR_REAL, label='Real')
-        ]
+    handles_legenda = [
+        Patch(color=StyleConfig.COR_PREVISTO, label='Previsto'),
+        Patch(color=StyleConfig.COR_REAL, label='Real')
+    ]
 
-        eixo_gantt.legend(
-            handles=handles_legenda,
-            loc='upper center',
-            bbox_to_anchor=(1.1, 1),
-            frameon=False,
-            borderaxespad=0.1
-        )
+    # Posição da legenda mantida como no original
+    eixo_gantt.legend(
+        handles=handles_legenda,
+        loc='upper center',
+        bbox_to_anchor=(1.1, 1),
+        frameon=False,
+        borderaxespad=0.1
+    )
 
-        plt.tight_layout(rect=[0, 0.03, 1, 1])
-        st.pyplot(figura)
-        plt.close(figura)
-
+    plt.tight_layout(rect=[0, 0.03, 1, 1])
+    st.pyplot(figura)
+    plt.close(figura)
 #========================================================================================================
 
 # --- Lógica Principal do App Streamlit (sem alterações) ---
