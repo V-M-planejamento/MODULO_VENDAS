@@ -243,17 +243,27 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
         
-        cor_texto = "#000000"
-        cor_caixa = estilo_celula['facecolor']
         if percentual == 100:
             if pd.notna(termino_real) and pd.notna(termino_previsto):
                 if termino_real < termino_previsto:
-                    cor_texto, cor_caixa = "#2EAF5B", "#e6f5eb"
+                    cor_texto = "#2EAF5B"  # Verde - concluído antes do prazo
+                    cor_caixa = "#e6f5eb"
                 elif termino_real > termino_previsto:
-                    cor_texto, cor_caixa = "#C30202", "#fae6e6"
-        elif pd.notna(termino_previsto) and (termino_previsto < hoje):
-            cor_texto, cor_caixa = "#A38408", "#faf3d9"
-            
+                    cor_texto = "#C30202"  # Vermelho - concluído com atraso
+                    cor_caixa = "#fae6e6"
+                else:
+                    cor_texto = "#000000"  # Preto - concluído exatamente no prazo
+                    cor_caixa = estilo_celula['facecolor']
+            else:
+                cor_texto = "#000000"  # Preto - concluído mas sem dados completos
+                cor_caixa = estilo_celula['facecolor']
+        elif percentual < 100:
+            if pd.notna(termino_real) and (termino_real < hoje):
+                cor_texto = "#A38408"  # Amarelo - atrasado na execução real
+                cor_caixa = "#faf3d9"
+            else:
+                cor_texto = "#000000"  # Preto - em andamento normal
+                cor_caixa = estilo_celula['facecolor']
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         eixo_tabela.text(0.88, y_pos, f"{percentual:.0f}%", va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
 
