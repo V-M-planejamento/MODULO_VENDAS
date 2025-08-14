@@ -86,17 +86,11 @@ def calcular_porcentagem_correta(grupo):
     if len(porcentagens) == 0:
         return 0.0
     
-    # Verificar conclusão total (100% só quando todas as linhas estiverem completas)
-    todas_concluidas = all(p == 100 for p in porcentagens)
-    
-    if todas_concluidas:
-        return 100.0
-    else:
-        # Desconsiderar células vazias ou nulas para a média
-        porcentagens_validas = porcentagens[pd.notna(porcentagens)]
-        if len(porcentagens_validas) == 0:
-            return 0.0
-        return round(porcentagens_validas.mean(), 1)
+    # Sempre calcular a média, mesmo que todas estejam completas
+    porcentagens_validas = porcentagens[pd.notna(porcentagens)]
+    if len(porcentagens_validas) == 0:
+        return 0.0
+    return porcentagens_validas.mean()  # Retorna o valor exato sem arredondamento
 
 sigla_para_nome_completo = {
     'DM': '1. DEFINIÇÃO DO MÓDULO',
@@ -274,6 +268,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
         percentual = linha['% concluído']
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
+        hoje = pd.Timestamp.now()
         
         if percentual == 100:
             if pd.notna(termino_real) and pd.notna(termino_previsto):
@@ -297,7 +292,8 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
                 cor_texto = "#000000"  # Preto - em andamento normal
                 cor_caixa = estilo_celula['facecolor']
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
-        eixo_tabela.text(0.88, y_pos, f"{percentual:.0f}%", va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
+        percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
+        eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
 
     # --- Desenho das Barras ---
     datas_relevantes = []
