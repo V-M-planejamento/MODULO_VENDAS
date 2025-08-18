@@ -98,8 +98,9 @@ sigla_para_nome_completo = {
     'LAE': '3. LAE',
     'MEM': '4. MEMORIAL',
     'CONT': '5. CONTRATAÇÃO',
-    'ASS': '6. ASSINATURA',
-    'PJ': '7. 1º PJ'
+    'ASS': '6. PRÉ-ASSINATURA',
+    'M':   '7. DEMANDA MÍNIMA',
+    'PJ':  '8. 1º PJ'
 }
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
@@ -108,7 +109,8 @@ mapeamento_variacoes_real = {
     'LAE': 'LAE',
     'MEMORIAL': 'MEM',
     'CONTRATAÇÃO': 'CONT',
-    'ASSINATURA': 'ASS',
+    'PRÉ-ASSINATURA': 'ASS', # Mapeia o nome completo
+    'ASS': 'ASS',            # Adicione esta linha para garantir que a sigla seja reconhecida
     '1º PJ': 'PJ',
     'PLANEJAMENTO': 'DM',
     'MEMORIAL DE INCORPORAÇÃO': 'MEM',
@@ -119,17 +121,31 @@ mapeamento_variacoes_real = {
     'MORAR BEM': 'ASS',
     'SEGUROS': 'ASS',
     'ATESTE': 'ASS',
-    'DEMANDA MÍNIMA': 'ASS',
+    'DEMANDA MÍNIMA': 'M',
+    'DEMANDA MINIMA': 'M',
+    'PRIMEIRO PJ': 'PJ',
 }
 
 def padronizar_etapa(etapa_str):
-    if pd.isna(etapa_str): return 'UNKNOWN'
-    etapa_str = str(etapa_str).strip().upper()
-    for k, v in mapeamento_variacoes_real.items():
-        if k == etapa_str: return v
-    for k, v in nome_completo_para_sigla.items():
-        if k == etapa_str: return v
-    if etapa_str in sigla_para_nome_completo: return etapa_str
+    if pd.isna(etapa_str):
+        return 'UNKNOWN'
+    
+    # Limpeza rigorosa da string de entrada
+    etapa_limpa = str(etapa_str).strip().upper()
+    
+    # 1. Busca por correspondência exata no mapeamento de variações
+    if etapa_limpa in mapeamento_variacoes_real:
+        return mapeamento_variacoes_real[etapa_limpa]
+        
+    # 2. Busca por correspondência no nome completo da etapa
+    if etapa_limpa in nome_completo_para_sigla:
+        return nome_completo_para_sigla[etapa_limpa]
+
+    # 3. Verifica se a entrada já é uma sigla válida
+    if etapa_limpa in sigla_para_nome_completo:
+        return etapa_limpa
+        
+    # 4. Se nenhuma correspondência for encontrada, retorna 'UNKNOWN'
     return 'UNKNOWN'
 
 # --- Função Principal do Gráfico de Gantt ---
@@ -742,7 +758,7 @@ if df_data is not None and not df_data.empty:
                 def estilo_linha(row):
                     style = [None] * len(row)
                     
-                    if row['Empreendimento / Etapa'].startswith('📂'):
+                    if str(row['Empreendimento / Etapa']).startswith('📂'):
                         for i in range(len(style)):
                             style[i] = "font-weight: 500; color: #000000; background-color: #F0F2F6; border-left: 4px solid #000000; padding-left: 10px;"
                             if i > 0:
