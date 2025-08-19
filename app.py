@@ -11,6 +11,7 @@ from datetime import datetime
 from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
 from popup import show_welcome_screen  # Importando o sistema de popup
 from st_aggrid import AgGrid
+from calculate_business_days import calculate_business_days
 
 # Tenta importar os scripts de processamento de dados.
 try:
@@ -556,7 +557,6 @@ if df_data is not None and not df_data.empty:
 
 #========================================================================================================
 
-
     with tab1:
         st.subheader("Gantt Comparativo")
         if df_filtered.empty:
@@ -604,7 +604,7 @@ if df_data is not None and not df_data.empty:
                     df_agregado['Percentual_Concluido'] = df_agregado['Percentual_Concluido'] * 100
 
             # Calcular variação de término
-            df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
+            df_agregado['Var. Term'] = df_agregado.apply(lambda row: calculate_business_days(row['Termino_Real'], row['Termino_Prevista']), axis=1)
             
             # NOVA FUNCIONALIDADE: Calcular duração real (oculta)
             df_agregado['Duracao_Real'] = (df_agregado['Termino_Real'] - df_agregado['Inicio_Real']).dt.days
@@ -743,8 +743,6 @@ if df_data is not None and not df_data.empty:
             colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
             tabela_estilizada = aplicar_estilo(tabela_para_exibir[colunas_para_exibir])
             st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
-
-
             
 #========================================================================================================
 
@@ -863,7 +861,7 @@ if df_data is not None and not df_data.empty:
             df_agregado = df_detalhes.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
             
             # Calculate variation
-            df_agregado['Var. Term'] = (df_agregado['Termino_Prevista'] - df_agregado['Termino_Real']).dt.days
+            df_agregado['Var. Term'] = df_agregado.apply(lambda row: calculate_business_days(row['Termino_Prevista'], row['Termino_Real']), axis=1)
 
             # Adicionar Etapa_Ordem
             df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(
