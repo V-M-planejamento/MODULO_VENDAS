@@ -312,7 +312,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos"):
 
     if num_empreendimentos == 1 and num_etapas > 1:
         empreendimento = df["Empreendimento"].unique()[0]
-        df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "ASS")]
+        df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "M")]
         if not df_assinatura.empty:
             data_meta, tipo_meta = (None, "")
             if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):
