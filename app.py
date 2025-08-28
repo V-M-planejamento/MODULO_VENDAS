@@ -8,7 +8,7 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
-from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado
+from dropdown_component import simple_multiselect_dropdown  # Importando o componente personalizado 
 from popup import show_welcome_screen  # Importando o sistema de popup
 from st_aggrid import AgGrid
 from calculate_business_days import calculate_business_days
@@ -120,6 +120,23 @@ def padronizar_etapa(etapa_str):
     if etapa_limpa in nome_completo_para_sigla: return nome_completo_para_sigla[etapa_limpa]
     if etapa_limpa in sigla_para_nome_completo: return etapa_limpa
     return 'UNKNOWN'
+
+# NOVA FUNÇÃO: Filtrar etapas não concluídas
+def filtrar_etapas_nao_concluidas(df):
+    """
+    Filtra o DataFrame para mostrar apenas etapas que não estão 100% concluídas.
+    """
+    if df.empty or '% concluído' not in df.columns:
+        return df
+    
+    # Converter porcentagens para formato numérico
+    df_copy = df.copy()
+    df_copy['% concluído'] = df_copy['% concluído'].apply(converter_porcentagem)
+    
+    # Filtrar apenas etapas com menos de 100% de conclusão
+    df_filtrado = df_copy[df_copy['% concluído'] < 100]
+    
+    return df_filtrado
 
 # --- Função Principal do Gráfico de Gantt ---
 def gerar_gantt(df, tipo_visualizacao="Ambos"):
@@ -539,17 +556,37 @@ if df_data is not None and not df_data.empty:
             options=etapas_para_exibir
         )
 
-        # 4️⃣ Opção de visualização
-        tipo_visualizacao = st.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
 
-    # Aplica o filtro de etapa final
+    # 4️⃣ NOVO FILTRO: Etapas não concluídas
+    st.sidebar.markdown("---")
+    filtrar_nao_concluidas = st.sidebar.checkbox(
+        "Mostrar apenas etapas não concluídas",
+        value=False,
+        help="Quando marcado, mostra apenas etapas com menos de 100% de conclusão"
+    )
+
+    # 5️⃣ Opção de visualização
+    st.sidebar.markdown("---")
+    tipo_visualizacao = st.sidebar.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
+
+    # Aplicar filtro de etapa
     if selected_etapa_nome != "Todos" and not df_filtered.empty:
         try:
             sigla_selecionada = nome_completo_para_sigla.get(selected_etapa_nome, selected_etapa_nome)
             df_filtered = df_filtered[df_filtered["Etapa"] == sigla_selecionada]
         except NameError:
-            # Se nome_completo_para_sigla não estiver definido, usar o nome como está
             df_filtered = df_filtered[df_filtered["Etapa"] == selected_etapa_nome]
+
+    # APLICAR NOVO FILTRO: Etapas não concluídas
+    if filtrar_nao_concluidas and not df_filtered.empty:
+        df_filtered = filtrar_etapas_nao_concluidas(df_filtered)
+        
+        # Mostrar informação sobre o filtro aplicado
+        if not df_filtered.empty:
+            total_etapas_nao_concluidas = len(df_filtered)
+            st.sidebar.success(f"✅ Mostrando {total_etapas_nao_concluidas} etapas não concluídas")
+        else:
+            st.sidebar.info("ℹ️ Todas as etapas estão 100% concluídas")
 
     # Abas principais
     tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
