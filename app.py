@@ -37,11 +37,23 @@ class StyleConfig:
     FONTE_ETAPA = {'size': 12, 'weight': 'bold', 'color': '#2c3e50'}
     FONTE_DATAS = {'family': 'monospace', 'size': 10, 'color': '#2c3e50'}
     FONTE_PORCENTAGEM = {'size': 12, 'weight': 'bold'}
+    FONTE_VARIACAO = {"size": 9, "weight": "bold"}  
     CABECALHO = {'facecolor': '#2c3e50', 'edgecolor': 'none', 'pad': 4.0, 'color': 'white'}
     CELULA_PAR = {'facecolor': 'white', 'edgecolor': '#d1d5db', 'lw': 0.8}
     CELULA_IMPAR = {'facecolor': '#f1f3f5', 'edgecolor': '#d1d5db', 'lw': 0.8}
     FUNDO_TABELA = '#f8f9fa'
     ESPACO_ENTRE_EMPREENDIMENTOS = 1.5
+    OFFSET_VARIACAO_TERMINO = 0.33 # Posição vertical padrão para o texto da variação
+
+    @classmethod
+    def set_offset_variacao_termino(cls, novo_offset):
+        """
+        Método para alterar o offset vertical do texto da variação de término.
+        
+        Args:
+            novo_offset (float): Novo offset vertical (valor float, e.g., 0.25)
+        """
+        cls.OFFSET_VARIACAO_TERMINO = novo_offset
 
 # --- Funções Utilitárias ---
 def abreviar_nome(nome):
@@ -75,6 +87,28 @@ def calcular_dias_uteis(inicio, fim):
         data_fim = np.datetime64(fim.date())
         return np.busday_count(data_inicio, data_fim) + 1
     return 0
+
+def calcular_variacao_termino(termino_real, termino_previsto):
+    """
+    Calcula a variação entre o término real e o término previsto.
+    Retorna uma tupla (texto_variacao, cor_variacao)
+    """
+    if pd.notna(termino_real) and pd.notna(termino_previsto):
+        diferenca_dias = calculate_business_days(termino_previsto, termino_real)
+        if pd.isna(diferenca_dias): diferenca_dias = 0 # Handle cases where calculate_business_days returns NA
+        
+        if diferenca_dias > 0:
+            # Atrasado - vermelho
+            return f"Var.: +{diferenca_dias}d", "#666666"
+        elif diferenca_dias < 0:
+            # Adiantado - verde
+            return f"Var.: {diferenca_dias}d", "#666666"
+        else:
+            # No prazo - verde
+            return "Var.: 0d", "#666666"
+    else:
+        # Sem dados suficientes - cinza
+        return "Var.: -", "#666666"
 
 def calcular_porcentagem_correta(grupo):
     if '% concluído' not in grupo.columns:
@@ -304,7 +338,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         eixo_tabela.text(0.04, y_pos + 0.05, f"{texto_prev:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
         eixo_tabela.text(0.04, y_pos + 0.28, f"{texto_real:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
 
-        # Indicador de porcentagem com colors
+        # Indicador de porcentagem com cores
         percentual = linha['% concluído']
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
@@ -324,6 +358,11 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
         percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
         eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
+
+        # NOVA FUNCIONALIDADE: Variação de término
+        variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
+        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
+                        color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
 
     # Desenho das barras do Gantt
     datas_relevantes = []
@@ -490,6 +529,11 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
         percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
         eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
 
+        # NOVA FUNCIONALIDADE: Variação de término
+        variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
+        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
+                        color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
+
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
@@ -565,7 +609,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
     plt.close(figura)
-
 
 
 #========================================================================================================
