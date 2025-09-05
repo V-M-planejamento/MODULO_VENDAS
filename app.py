@@ -37,13 +37,13 @@ class StyleConfig:
     FONTE_ETAPA = {'size': 12, 'weight': 'bold', 'color': '#2c3e50'}
     FONTE_DATAS = {'family': 'monospace', 'size': 10, 'color': '#2c3e50'}
     FONTE_PORCENTAGEM = {'size': 12, 'weight': 'bold'}
-    FONTE_VARIACAO = {"size": 9, "weight": "bold"}  
+    FONTE_VARIACAO = {"size": 8, "weight": "bold"}  
     CABECALHO = {'facecolor': '#2c3e50', 'edgecolor': 'none', 'pad': 4.0, 'color': 'white'}
     CELULA_PAR = {'facecolor': 'white', 'edgecolor': '#d1d5db', 'lw': 0.8}
     CELULA_IMPAR = {'facecolor': '#f1f3f5', 'edgecolor': '#d1d5db', 'lw': 0.8}
     FUNDO_TABELA = '#f8f9fa'
     ESPACO_ENTRE_EMPREENDIMENTOS = 1.5
-    OFFSET_VARIACAO_TERMINO = 0.33 # Posição vertical padrão para o texto da variação
+    OFFSET_VARIACAO_TERMINO = 0.31 # Posição vertical variação
 
     @classmethod
     def set_offset_variacao_termino(cls, novo_offset):
@@ -95,20 +95,20 @@ def calcular_variacao_termino(termino_real, termino_previsto):
     """
     if pd.notna(termino_real) and pd.notna(termino_previsto):
         diferenca_dias = calculate_business_days(termino_previsto, termino_real)
-        if pd.isna(diferenca_dias): diferenca_dias = 0 # Handle cases where calculate_business_days returns NA
+        if pd.isna(diferenca_dias): diferenca_dias = 0 # Lidar com casos em que calculate_business_days retorna NA
         
         if diferenca_dias > 0:
             # Atrasado - vermelho
-            return f"Var.: +{diferenca_dias}d", "#666666"
+            return f"V: +{diferenca_dias}d", "#89281d"
         elif diferenca_dias < 0:
             # Adiantado - verde
-            return f"Var.: {diferenca_dias}d", "#666666"
+            return f"V: {diferenca_dias}d", "#0b803c"
         else:
-            # No prazo - verde
-            return "Var.: 0d", "#666666"
+            # No prazo - cinza
+            return "V: 0d", "#666666"
     else:
         # Sem dados suficientes - cinza
-        return "Var.: -", "#666666"
+        return "V: -", "#666666"
 
 def calcular_porcentagem_correta(grupo):
     if '% concluído' not in grupo.columns:
@@ -609,7 +609,6 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
     plt.close(figura)
-
 
 #========================================================================================================
 
