@@ -847,269 +847,195 @@ if df_data is not None and not df_data.empty:
 
 #========================================================================================================
 
+# Supondo que as funções e variáveis abaixo já existam no seu ambiente
 
-    # --- Funções e Variáveis de Apoio (simulando o ambiente do seu projeto) ---
+
+# --- Início do Bloco de Código Fornecido ---
+
     with tab1:
         st.subheader("Gantt Comparativo")
         if df_filtered.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
-            # CORREÇÃO: Passar o parâmetro filtrar_nao_concluidas para a função
+            # Passa o parâmetro filtrar_nao_concluidas para a função de Gantt
             gerar_gantt(df_filtered.copy(), tipo_visualizacao, filtrar_nao_concluidas)
-        # CORREÇÃO: Passar o parâmetro filtrar_nao_concluidas para a função
-            def gerar_gantt(df, tipo, filtrar): pass
-            def filtrar_etapas_nao_concluidas(df): return df
-            def calculate_business_days(d1, d2):
-                if pd.isna(d1) or pd.isna(d2): return np.nan
-                return np.busday_count(d1.date(), d2.date())
-
-    sigla_para_nome_completo = {
-        'DM': '1. DEFINIÇÃO DO MÓDULO', 'DOC': '2. DOCUMENTAÇÃO', 'LAE': '3. LAE',
-        'MEM': '4. MEMORIAL', 'CONT': '5. CONTRATAÇÃO', 'ASS': '6. PRÉ-ASSINATURA',
-        'M':   '7. DEMANDA MÍNIMA', 'PJ':  '8. 1º PJ'
-    }
-
-    # --- Funções Importadas do Segundo Script para Ordenação e Abreviação ---
-
-    def abreviar_nome(nome):
-        """Abrevia o nome do empreendimento."""
-        if pd.isna(nome):
-            return nome
-        nome = nome.replace('CONDOMINIO ', '')
-        palavras = nome.split()
-        if len(palavras) > 3:
-            nome = ' '.join(palavras[:3])
-        return nome
-
-    def obter_data_meta_assinatura(df_original, empreendimento):
-        """Obtém a data da meta (etapa 'M') para um empreendimento específico."""
-        # Filtra o DataFrame original para a etapa 'M' (DEMANDA MÍNIMA)
-        df_meta = df_original[(df_original['Empreendimento'] == empreendimento) & (df_original['Etapa'] == 'M')]
-        
-        if df_meta.empty:
-            return pd.Timestamp.max # Retorna uma data muito futura se não encontrar a meta
-        
-        # Tenta obter a data na ordem de prioridade: Prevista, Real
-        if pd.notna(df_meta['Termino_Prevista'].iloc[0]):
-            return df_meta['Termino_Prevista'].iloc[0]
-        elif pd.notna(df_meta['Inicio_Prevista'].iloc[0]):
-            return df_meta['Inicio_Prevista'].iloc[0]
-        elif pd.notna(df_meta['Termino_Real'].iloc[0]):
-            return df_meta['Termino_Real'].iloc[0]
-        elif pd.notna(df_meta['Inicio_Real'].iloc[0]):
-            return df_meta['Inicio_Real'].iloc[0]
-        else:
-            return pd.Timestamp.max
-
-    def criar_ordenacao_empreendimentos(df_original):
-        """Cria uma lista ordenada de empreendimentos com base na data da meta."""
-        empreendimentos_meta = {}
-        
-        for empreendimento in df_original['Empreendimento'].unique():
-            data_meta = obter_data_meta_assinatura(df_original, empreendimento)
-            empreendimentos_meta[empreendimento] = data_meta
-        
-        # Ordena os empreendimentos pela data da meta, da mais antiga para a mais nova
-        empreendimentos_ordenados = sorted(
-            empreendimentos_meta.keys(), 
-            key=lambda x: empreendimentos_meta[x]
-        )
-        
-        return empreendimentos_ordenados
-
-    with tab1:
         
         st.subheader("Visão Detalhada por Empreendimento")
         if df_filtered.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
+            # --- INÍCIO DA LÓGICA CORRIGIDA ---
             df_detalhes = df_filtered.copy()
             
+            # 1. Obter a ordem correta dos empreendimentos ANTES de qualquer filtro.
+            # A ordenação é baseada na data da meta de assinatura (etapa 'M').
+            empreendimentos_ordenados_por_meta = criar_ordenacao_empreendimentos(df_data)
+            
+            # 2. Aplicar o filtro de "não concluídas" se estiver ativo.
             if filtrar_nao_concluidas:
                 df_detalhes = filtrar_etapas_nao_concluidas(df_detalhes)
-            
-            hoje = pd.Timestamp.now().normalize()
 
-            for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
-                df_detalhes[col] = df_detalhes[col].replace('-', pd.NA)
-                df_detalhes[col] = pd.to_datetime(df_detalhes[col], errors='coerce')
+            # Se após o filtro o dataframe ficar vazio, exibe um aviso.
+            if df_detalhes.empty:
+                st.info("ℹ️ Nenhuma etapa não concluída encontrada para os filtros selecionados.")
+            else:
+                hoje = pd.Timestamp.now().normalize()
 
-            df_detalhes['Conclusao_Valida'] = False
-            if '% concluído' in df_detalhes.columns:
-                mask = (
-                    (df_detalhes['% concluído'] == 100) & 
-                    (df_detalhes['Termino_Real'].notna()) &
-                    ((df_detalhes['Termino_Prevista'].isna()) | 
-                    (df_detalhes['Termino_Real'] <= df_detalhes['Termino_Prevista']))
+                # Conversão de colunas de data
+                for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
+                    df_detalhes[col] = pd.to_datetime(df_detalhes[col], errors='coerce')
+
+                # Agregação de dados por empreendimento e etapa
+                df_agregado = df_detalhes.groupby(['Empreendimento', 'Etapa']).agg(
+                    Inicio_Prevista=('Inicio_Prevista', 'min'),
+                    Termino_Prevista=('Termino_Prevista', 'max'),
+                    Inicio_Real=('Inicio_Real', 'min'),
+                    Termino_Real=('Termino_Real', 'max'),
+                    Percentual_Concluido=('% concluído', 'max') if '% concluído' in df_detalhes.columns else ('% concluído', lambda x: 0)
+                ).reset_index()
+
+                # Converte percentual para o formato 0-100, se necessário
+                if '% concluído' in df_detalhes.columns and not df_agregado.empty and df_agregado['Percentual_Concluido'].max() <= 1:
+                    df_agregado['Percentual_Concluido'] *= 100
+
+                # Cálculo da variação de término
+                df_agregado['Var. Term'] = df_agregado.apply(
+                    lambda row: calculate_business_days(row['Termino_Prevista'], row['Termino_Real']), axis=1
                 )
-                df_detalhes.loc[mask, 'Conclusao_Valida'] = True
-
-            # --- INÍCIO DA ALTERAÇÃO: Criar cópia para ordenação antes de abreviar ---
-            df_para_ordenacao = df_detalhes.copy()
-            # --- FIM DA ALTERAÇÃO ---
-
-            df_agregado = df_detalhes.groupby(['Empreendimento', 'Etapa']).agg(
-                Inicio_Prevista=('Inicio_Prevista', 'min'),
-                Termino_Prevista=('Termino_Prevista', 'max'),
-                Inicio_Real=('Inicio_Real', 'min'),
-                Termino_Real=('Termino_Real', 'max'),
-                Concluido_Valido=('Conclusao_Valida', 'any'),
-                Percentual_Concluido=('% concluído', 'max') if '% concluído' in df_detalhes.columns else ('% concluído', lambda x: 0)
-            ).reset_index()
-
-            if '% concluído' in df_detalhes.columns:
-                if not df_agregado.empty and df_agregado['Percentual_Concluido'].max() <= 1:
-                    df_agregado['Percentual_Concluido'] = df_agregado['Percentual_Concluido'] * 100
-
-            df_agregado['Var. Term'] = df_agregado.apply(lambda row: calculate_business_days(row['Termino_Real'], row['Termino_Prevista']), axis=1)
-            df_agregado['Duracao_Real'] = (df_agregado['Termino_Real'] - df_agregado['Inicio_Real']).dt.days
-
-            # --- INÍCIO DA ALTERAÇÃO: Lógica de Ordenação por Meta ---
-            st.write("---")
-            # 1. Obter a lista de empreendimentos ordenados pela meta
-            empreendimentos_ordenados_por_meta = criar_ordenacao_empreendimentos(df_para_ordenacao)
-            
-            # 2. Criar um mapeamento de ordem para aplicar ao DataFrame
-            ordem_empreendimento_map = {emp: i for i, emp in enumerate(empreendimentos_ordenados_por_meta)}
-            df_agregado['ordem_empreendimento'] = df_agregado['Empreendimento'].map(ordem_empreendimento_map)
-            
-            # 3. Adicionar ordem das etapas para desempate
-            ordem_etapas_map = {etapa: i for i, etapa in enumerate(sigla_para_nome_completo.keys())}
-            df_agregado['ordem_etapa'] = df_agregado['Etapa'].map(ordem_etapas_map).fillna(len(ordem_etapas_map))
-            
-            # 4. Aplicar a ordenação
-            df_ordenado = df_agregado.sort_values(by=['ordem_empreendimento', 'ordem_etapa'])
-            
-            # 5. Aplicar a abreviação de nomes APÓS a ordenação
-            df_ordenado['Empreendimento'] = df_ordenado['Empreendimento'].apply(abreviar_nome)
-            
-            st.info("Tabela ordenada pela data da meta de assinatura (da mais antiga para a mais nova).")
-            st.write("---")
-            # --- FIM DA ALTERAÇÃO ---
-
-            etapas_unicas = df_ordenado['Etapa'].unique()
-            usar_layout_horizontal = len(etapas_unicas) == 1
-
-            tabela_final_lista = []
-            
-            if usar_layout_horizontal:
-                tabela_para_processar = df_ordenado.copy()
-                tabela_para_processar['Etapa'] = tabela_para_processar['Etapa'].map(sigla_para_nome_completo)
-                tabela_final_lista.append(tabela_para_processar)
-            else:
-                # Agrupa pelos nomes já abreviados e ordenados
-                for empreendimento, grupo in df_ordenado.groupby('Empreendimento', sort=False):
-                    var_term_assinatura = grupo[grupo['Etapa'] == 'ASS']['Var. Term']
-                    var_term_cabecalho = var_term_assinatura.iloc[0] if not var_term_assinatura.empty and pd.notna(var_term_assinatura.iloc[0]) else grupo['Var. Term'].mean()
-                    
-                    percentuais = grupo['Percentual_Concluido']
-                    duracao_real = grupo['Duracao_Real']
-                    valid_mask = (~duracao_real.isna()) & (~percentuais.isna())
-                    percentuais_validos = percentuais[valid_mask]
-                    duracao_real_validos = duracao_real[valid_mask]
-                    
-                    if len(percentuais_validos) > 0 and len(duracao_real_validos) > 0 and duracao_real_validos.sum() != 0:
-                        soma_ponderada = (percentuais_validos * duracao_real_validos).sum()
-                        soma_pesos = duracao_real_validos.sum()
-                        percentual_medio = soma_ponderada / soma_pesos
-                    else:
-                        percentual_medio = percentuais.mean()
-                    
-                    cabecalho = pd.DataFrame([{
-                        'Hierarquia': f'📂 {empreendimento}', 
-                        'Inicio_Prevista': grupo['Inicio_Prevista'].min(), 
-                        'Termino_Prevista': grupo['Termino_Prevista'].max(),
-                        'Inicio_Real': grupo['Inicio_Real'].min(), 
-                        'Termino_Real': grupo['Termino_Real'].max(), 
-                        'Var. Term': var_term_cabecalho,
-                        'Percentual_Concluido': percentual_medio
-                    }])
-                    tabela_final_lista.append(cabecalho)
-                    
-                    grupo_formatado = grupo.copy()
-                    grupo_formatado['Hierarquia'] = ' &nbsp; &nbsp; ' + grupo_formatado['Etapa'].map(sigla_para_nome_completo)
-                    tabela_final_lista.append(grupo_formatado)
-
-            tabela_final = pd.concat(tabela_final_lista, ignore_index=True)
-
-            def aplicar_estilo(df_para_estilo, layout_horizontal):
-                if df_para_estilo.empty:
-                    return df_para_estilo.style
-
-                def estilo_linha(row):
-                    style = [None] * len(row)
-                    
-                    if not layout_horizontal and 'Empreendimento / Etapa' in row and str(row['Empreendimento / Etapa']).startswith('📂'):
-                        for i in range(len(style)):
-                            style[i] = "font-weight: 500; color: #000000; background-color: #F0F2F6; border-left: 4px solid #000000; padding-left: 10px;"
-                            if i > 0: style[i] = "background-color: #F0F2F6;"
-                        return style
-                    
-                    percentual = row.get('% Concluído', 0)
-                    if isinstance(percentual, str) and '%' in percentual:
-                        try: percentual = int(percentual.replace('%', ''))
-                        except: percentual = 0
-
-                    termino_real, termino_previsto = row.get("Término Real"), row.get("Término Prev.")
-                    cor = "#000000"
-                    if percentual == 100:
-                        if pd.notna(termino_real) and pd.notna(termino_previsto):
-                            if termino_real < termino_previsto: cor = "#2EAF5B"
-                            elif termino_real > termino_previsto: cor = "#C30202"
-                    elif pd.notna(termino_previsto) and (termino_previsto < pd.Timestamp.now()):
-                        cor = "#A38408"
-
-                    for i, col in enumerate(df_para_estilo.columns):
-                        if col in ['Início Real', 'Término Real']: style[i] = f"color: {cor};"
-
-                    if pd.notna(row.get("Var. Term", None)):
-                        val = row["Var. Term"]
-                        if isinstance(val, str):
-                            try: val = int(val.split()[1]) * (-1 if '▲' in val else 1)
-                            except: val = 0
-                        cor_texto = "#e74c3c" if val < 0 else "#2ecc71"
-                        style[df_para_estilo.columns.get_loc("Var. Term")] = f"color: {cor_texto}; font-weight: 600; font-size: 12px; text-align: center;"
-                    return style
-
-                styler = df_para_estilo.style.format({
-                    "Início Prev.": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
-                    "Término Prev.": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
-                    "Início Real": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
-                    "Término Real": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
-                    "Var. Term": lambda x: f"{'▼' if isinstance(x, (int, float)) and x > 0 else '▲'} {abs(int(x))} dias" if pd.notna(x) else "-",
-                    "% Concluído": lambda x: f"{int(x)}%" if pd.notna(x) and str(x) != 'nan' else "-"
-                }, na_rep="-")
                 
-                styler = styler.set_properties(**{'white-space': 'nowrap', 'text-overflow': 'ellipsis', 'overflow': 'hidden', 'max-width': '380px'})
-                styler = styler.apply(estilo_linha, axis=1).hide(axis="index")
-                return styler
+                # 3. Aplicar a ordenação dos empreendimentos baseada na meta
+                # Isso garante que a ordem dos blocos de empreendimento seja consistente.
+                df_agregado['ordem_empreendimento'] = pd.Categorical(
+                    df_agregado['Empreendimento'], 
+                    categories=empreendimentos_ordenados_por_meta, 
+                    ordered=True
+                )
+                
+                # 4. Ordenar o dataframe final, respeitando a ordem dos empreendimentos e, em seguida, a ordem das etapas.
+                ordem_etapas = list(sigla_para_nome_completo.keys())
+                df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(lambda x: ordem_etapas.index(x) if x in ordem_etapas else len(ordem_etapas))
+                
+                df_ordenado = df_agregado.sort_values(by=['ordem_empreendimento', 'Etapa_Ordem'])
 
-            st.markdown("""
-            <style>
-                .stDataFrame { width: 100%; }
-                .stDataFrame td, .stDataFrame th { white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important; max-width: 380px !important; }
-            </style>
-            """, unsafe_allow_html=True)
+                st.write("---")
 
-            colunas_rename = {
-                'Inicio_Prevista': 'Início Prev.', 'Termino_Prevista': 'Término Prev.',
-                'Inicio_Real': 'Início Real', 'Termino_Real': 'Término Real',
-                'Percentual_Concluido': '% Concluído'
-            }
-            
-            if usar_layout_horizontal:
-                colunas_rename['Empreendimento'] = 'Empreendimento'
-                colunas_rename['Etapa'] = 'Etapa'
-                colunas_para_exibir = ['Empreendimento', 'Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
-            else:
-                colunas_rename['Hierarquia'] = 'Empreendimento / Etapa'
-                colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
+                # A lógica de exibição da tabela (hierárquica ou horizontal) permanece a mesma
+                etapas_unicas = df_ordenado['Etapa'].unique()
+                usar_layout_horizontal = len(etapas_unicas) == 1
 
-            tabela_para_exibir = tabela_final.rename(columns=colunas_rename)
-            
-            tabela_estilizada = aplicar_estilo(tabela_para_exibir[colunas_para_exibir], layout_horizontal=usar_layout_horizontal)
-            
-            st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
+                tabela_final_lista = []
+                
+                if usar_layout_horizontal:
+                    tabela_para_processar = df_ordenado.copy()
+                    tabela_para_processar['Etapa'] = tabela_para_processar['Etapa'].map(sigla_para_nome_completo)
+                    tabela_final_lista.append(tabela_para_processar)
+                else:
+                    # Agrupa por 'ordem_empreendimento' para manter a ordem correta
+                    for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
+                        empreendimento = grupo['Empreendimento'].iloc[0]
+                        
+                        percentual_medio = grupo['Percentual_Concluido'].mean()
+                        
+                        cabecalho = pd.DataFrame([{
+                            'Hierarquia': f'📂 {empreendimento}', 
+                            'Inicio_Prevista': grupo['Inicio_Prevista'].min(), 
+                            'Termino_Prevista': grupo['Termino_Prevista'].max(),
+                            'Inicio_Real': grupo['Inicio_Real'].min(), 
+                            'Termino_Real': grupo['Termino_Real'].max(), 
+                            'Var. Term': grupo['Var. Term'].mean(),
+                            'Percentual_Concluido': percentual_medio
+                        }])
+                        tabela_final_lista.append(cabecalho)
+                        
+                        grupo_formatado = grupo.copy()
+                        grupo_formatado['Hierarquia'] = ' &nbsp; &nbsp; ' + grupo_formatado['Etapa'].map(sigla_para_nome_completo)
+                        tabela_final_lista.append(grupo_formatado)
+
+                if not tabela_final_lista:
+                    st.info("ℹ️ Nenhum dado para exibir na tabela detalhada com os filtros atuais.")
+                else:
+                    tabela_final = pd.concat(tabela_final_lista, ignore_index=True)
+
+                    # A função de estilo e a exibição final permanecem as mesmas
+                    def aplicar_estilo(df_para_estilo, layout_horizontal):
+                        if df_para_estilo.empty:
+                            return df_para_estilo.style
+
+                        def estilo_linha(row):
+                            style = [''] * len(row)
+                            
+                            if not layout_horizontal and 'Empreendimento / Etapa' in row and str(row['Empreendimento / Etapa']).startswith('📂'):
+                                style = ['font-weight: 500; color: #000000; background-color: #F0F2F6; border-left: 4px solid #000000; padding-left: 10px;'] * len(row)
+                                for i in range(1, len(style)):
+                                    style[i] = "background-color: #F0F2F6;"
+                                return style
+                            
+                            percentual = row.get('% Concluído', 0)
+                            if isinstance(percentual, str) and '%' in percentual:
+                                try: percentual = int(percentual.replace('%', ''))
+                                except: percentual = 0
+
+                            termino_real, termino_previsto = pd.to_datetime(row.get("Término Real"), errors='coerce'), pd.to_datetime(row.get("Término Prev."), errors='coerce')
+                            cor = "#000000"
+                            if percentual == 100:
+                                if pd.notna(termino_real) and pd.notna(termino_previsto):
+                                    if termino_real < termino_previsto: cor = "#2EAF5B"
+                                    elif termino_real > termino_previsto: cor = "#C30202"
+                            elif pd.notna(termino_previsto) and (termino_previsto < pd.Timestamp.now()):
+                                cor = "#A38408"
+
+                            for i, col in enumerate(df_para_estilo.columns):
+                                if col in ['Início Real', 'Término Real']:
+                                    style[i] = f"color: {cor};"
+
+                            if pd.notna(row.get("Var. Term", None)):
+                                val = row["Var. Term"]
+                                if isinstance(val, str):
+                                    try: val = int(val.split()[1]) * (-1 if '▲' in val else 1)
+                                    except: val = 0
+                                cor_texto = "#e74c3c" if val < 0 else "#2ecc71"
+                                style[df_para_estilo.columns.get_loc("Var. Term")] = f"color: {cor_texto}; font-weight: 600; font-size: 12px; text-align: center;"
+                            return style
+
+                        styler = df_para_estilo.style.format({
+                            "Início Prev.": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
+                            "Término Prev.": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
+                            "Início Real": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
+                            "Término Real": lambda x: x.strftime("%d/%m/%Y") if pd.notna(x) else "-",
+                            "Var. Term": lambda x: f"{'▼' if isinstance(x, (int, float)) and x > 0 else '▲'} {abs(int(x))} dias" if pd.notna(x) else "-",
+                            "% Concluído": lambda x: f"{int(x)}%" if pd.notna(x) and str(x) != 'nan' else "-"
+                        }, na_rep="-")
+                        
+                        styler = styler.set_properties(**{'white-space': 'nowrap', 'text-overflow': 'ellipsis', 'overflow': 'hidden', 'max-width': '380px'})
+                        styler = styler.apply(estilo_linha, axis=1).hide(axis="index")
+                        return styler
+
+                    st.markdown("""
+                    <style>
+                        .stDataFrame { width: 100%; }
+                        .stDataFrame td, .stDataFrame th { white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important; max-width: 380px !important; }
+                    </style>
+                    """, unsafe_allow_html=True)
+
+                    colunas_rename = {
+                        'Inicio_Prevista': 'Início Prev.', 'Termino_Prevista': 'Término Prev.',
+                        'Inicio_Real': 'Início Real', 'Termino_Real': 'Término Real',
+                        'Percentual_Concluido': '% Concluído'
+                    }
+                    
+                    if usar_layout_horizontal:
+                        colunas_rename['Empreendimento'] = 'Empreendimento'
+                        colunas_rename['Etapa'] = 'Etapa'
+                        colunas_para_exibir = ['Empreendimento', 'Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
+                    else:
+                        colunas_rename['Hierarquia'] = 'Empreendimento / Etapa'
+                        colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
+
+                    tabela_para_exibir = tabela_final.rename(columns=colunas_rename)
+                    
+                    tabela_estilizada = aplicar_estilo(tabela_para_exibir[colunas_para_exibir], layout_horizontal=usar_layout_horizontal)
+                    
+                    st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
 
 
 
