@@ -129,7 +129,7 @@ def calcular_porcentagem_correta(grupo):
 sigla_para_nome_completo = {
     'DM': '1. DEFINIÇÃO DO MÓDULO', 'DOC': '2. DOCUMENTAÇÃO', 'LAE': '3. LAE',
     'MEM': '4. MEMORIAL', 'CONT': '5. CONTRATAÇÃO', 'ASS': '6. PRÉ-ASSINATURA',
-    'M':   '7. DEMANDA MÍNIMA', 'PJ':  '8. 1º PJ'
+    'M':  '7. DEMANDA MÍNIMA', 'PJ':  '8. 1º PJ'
 }
 nome_completo_para_sigla = {v: k for k, v in sigla_para_nome_completo.items()}
 mapeamento_variacoes_real = {
@@ -323,7 +323,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         
         estilo_celula = StyleConfig.CELULA_PAR if int(y_pos) % 2 == 0 else StyleConfig.CELULA_IMPAR
         eixo_tabela.add_patch(Rectangle((0.01, y_pos - 0.5), 0.98, 1.0,
-                           facecolor=estilo_celula["facecolor"], edgecolor=estilo_celula["edgecolor"], lw=estilo_celula["lw"]))
+                             facecolor=estilo_celula["facecolor"], edgecolor=estilo_celula["edgecolor"], lw=estilo_celula["lw"]))
 
         # Texto principal: nome do empreendimento
         eixo_tabela.text(0.04, y_pos - 0.2, linha['Empreendimento'], va="center", ha="left", **StyleConfig.FONTE_ETAPA)
@@ -362,7 +362,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         # NOVA FUNCIONALIDADE: Variação de término
         variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
         eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
-                        color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
+                         color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
 
     # Desenho das barras do Gantt
     datas_relevantes = []
@@ -375,8 +375,8 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
             duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
-                           antialiased=False)
+                            height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
+                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
         # Barra real
@@ -384,20 +384,22 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
             duracao = (termino_real - linha['Inicio_Real']).days + 1
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
-                           antialiased=False)
+                            height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
+                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Real'], termino_real])
 
-    # Configuração dos eixos
     if datas_relevantes:
         datas_validas = [pd.Timestamp(d) for d in datas_relevantes if pd.notna(d)]
         if datas_validas:
-            data_min, data_max = min(datas_validas), max(datas_validas)
-            margem = pd.Timedelta(days=90)
-            limite_superior = data_max + margem
-            if hoje > limite_superior:
-                limite_superior = hoje + pd.Timedelta(days=10)
-            eixo_gantt.set_xlim(left=data_min - pd.Timedelta(days=5), right=limite_superior)
+            # --- MODIFICAÇÃO: AJUSTE DO LIMITE DO EIXO X PARA INCLUIR "HOJE" ---
+            data_min_do_grafico = min(datas_validas)
+            data_max_do_grafico = max(datas_validas)
+            
+            data_min_final = min(hoje, data_min_do_grafico)
+            limite_superior = max(hoje, data_max_do_grafico) + pd.Timedelta(days=90)
+            
+            eixo_gantt.set_xlim(left=data_min_final - pd.Timedelta(days=5), right=limite_superior)
+            # --- FIM DA MODIFICAÇÃO ---
 
     max_pos = max(rotulo_para_posicao.values())
     eixo_gantt.set_ylim(max_pos + 1, -1)
@@ -407,9 +409,18 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     for pos in rotulo_para_posicao.values():
         eixo_gantt.axhline(y=pos + 0.5, color='#dcdcdc', linestyle='-', alpha=0.7, linewidth=0.8)
     
-    # Linha vertical "Hoje"
-    eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
-    eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left', va='bottom')
+    # --- MODIFICAÇÃO: LÓGICA CONDICIONAL PARA A LINHA E TEXTO "HOJE" ---
+    limite_esquerdo, limite_direito = eixo_gantt.get_xlim()
+    margem_fixa = pd.Timedelta(days=30)
+    data_fim_projeto = max([d for d in [df['Termino_Real'].max(), df['Termino_Prevista'].max()] if pd.notna(d)], default=pd.Timestamp.min)
+    
+    if hoje <= data_fim_projeto + margem_fixa:
+        eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
+        eixo_gantt.text(hoje, eixo_gantt.get_ylim()[1], 'Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='center', va='bottom')
+    else:
+        eixo_gantt.axvline(limite_direito, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
+        eixo_gantt.text(limite_direito, eixo_gantt.get_ylim()[1], 'Hoje >', color=StyleConfig.COR_HOJE, fontsize=10, ha='right', va='bottom')
+    # --- FIM DA MODIFICAÇÃO ---
 
     # Grade e formatação
     eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
@@ -457,7 +468,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
                 rotulo_para_posicao[rotulo] = posicao
                 posicao += 1
             if len(empreendimentos_unicos) > 1:
-                 posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS / 2
+                    posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS / 2
         df['Posicao'] = (df['Empreendimento'] + '||' + df['Etapa']).map(rotulo_para_posicao)
 
     df.dropna(subset=['Posicao'], inplace=True)
@@ -491,11 +502,11 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
             nome_formatado = empreendimento_atual.replace('CONDOMINIO ', '')
             y_cabecalho = y_pos - (StyleConfig.ALTURA_GANTT_POR_ITEM / 2) - 0.2
             eixo_tabela.text(0.5, y_cabecalho, nome_formatado,
-                            va="center", ha="center", bbox=StyleConfig.CABECALHO, **StyleConfig.FONTE_TITULO)
+                             va="center", ha="center", bbox=StyleConfig.CABECALHO, **StyleConfig.FONTE_TITULO)
 
         estilo_celula = StyleConfig.CELULA_PAR if int(y_pos) % 2 == 0 else StyleConfig.CELULA_IMPAR
         eixo_tabela.add_patch(Rectangle((0.01, y_pos - 0.5), 0.98, 1.0,
-                           facecolor=estilo_celula["facecolor"], edgecolor=estilo_celula["edgecolor"], lw=estilo_celula["lw"]))
+                             facecolor=estilo_celula["facecolor"], edgecolor=estilo_celula["edgecolor"], lw=estilo_celula["lw"]))
 
         texto_principal = linha['Empreendimento'] if (num_empreendimentos > 1 and num_etapas == 1) else sigla_para_nome_completo.get(linha['Etapa'], linha['Etapa'])
         eixo_tabela.text(0.04, y_pos - 0.2, texto_principal, va="center", ha="left", **StyleConfig.FONTE_ETAPA)
@@ -532,7 +543,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
         # NOVA FUNCIONALIDADE: Variação de término
         variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
         eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
-                        color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
+                         color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
 
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
@@ -543,28 +554,31 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
             duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
-                           antialiased=False)
+                            height=ALTURA_BARRA, color=StyleConfig.COR_PREVISTO, alpha=0.9,
+                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
         if tipo_visualizacao in ["Ambos", "Real"] and pd.notna(linha['Inicio_Real']):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
             duracao = (termino_real - linha['Inicio_Real']).days + 1
             eixo_gantt.barh(y=y_pos + ESPACAMENTO, width=duracao, left=linha['Inicio_Real'],
-                           height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
-                           antialiased=False)
+                            height=ALTURA_BARRA, color=StyleConfig.COR_REAL, alpha=0.9,
+                            antialiased=False)
             datas_relevantes.extend([linha['Inicio_Real'], termino_real])
 
     if datas_relevantes:
         datas_validas = [pd.Timestamp(d) for d in datas_relevantes if pd.notna(d)]
         if datas_validas:
-            data_min, data_max = min(datas_validas), max(datas_validas)
-            margem = pd.Timedelta(days=90)
-            limite_superior = data_max + margem
-            if hoje > limite_superior:
-                limite_superior = hoje + pd.Timedelta(days=10)
-            eixo_gantt.set_xlim(left=data_min - pd.Timedelta(days=5), right=limite_superior)
-
+            # --- MODIFICAÇÃO: AJUSTE DO LIMITE DO EIXO X PARA INCLUIR "HOJE" ---
+            data_min_do_grafico = min(datas_validas)
+            data_max_do_grafico = max(datas_validas)
+            
+            data_min_final = min(hoje, data_min_do_grafico)
+            limite_superior = max(hoje, data_max_do_grafico) + pd.Timedelta(days=90)
+            
+            eixo_gantt.set_xlim(left=data_min_final - pd.Timedelta(days=5), right=limite_superior)
+            # --- FIM DA MODIFICAÇÃO ---
+            
     if not rotulo_para_posicao:
         st.pyplot(figura)
         plt.close(figura)
@@ -576,9 +590,19 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     
     for pos in rotulo_para_posicao.values():
         eixo_gantt.axhline(y=pos + 0.5, color='#dcdcdc', linestyle='-', alpha=0.7, linewidth=0.8)
+
+    # --- MODIFICAÇÃO: LÓGICA CONDICIONAL PARA A LINHA E TEXTO "HOJE" ---
+    limite_esquerdo, limite_direito = eixo_gantt.get_xlim()
+    margem_fixa = pd.Timedelta(days=30)
+    data_fim_projeto = max([d for d in [df['Termino_Real'].max(), df['Termino_Prevista'].max()] if pd.notna(d)], default=pd.Timestamp.min)
     
-    eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
-    eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], ' Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='left', va='bottom')
+    if hoje <= data_fim_projeto + margem_fixa:
+        eixo_gantt.axvline(hoje, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
+        eixo_gantt.text(hoje, eixo_gantt.get_ylim()[0], 'Hoje', color=StyleConfig.COR_HOJE, fontsize=10, ha='center', va='bottom')
+    else:
+        eixo_gantt.axvline(limite_direito, color=StyleConfig.COR_HOJE, linestyle='--', linewidth=1.5)
+        eixo_gantt.text(limite_direito, eixo_gantt.get_ylim()[1], 'Hoje >', color=StyleConfig.COR_HOJE, fontsize=10, ha='right', va='bottom')
+    # --- FIM DA MODIFICAÇÃO ---
 
     if num_empreendimentos == 1 and num_etapas > 1:
         empreendimento = df["Empreendimento"].unique()[0]
@@ -594,9 +618,9 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, linestyle="--", linewidth=1.7, alpha=0.7)
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
-                            f"Meta Assinatura\n{tipo_meta}: {data_meta.strftime('%d/%m/%y')}", 
-                            color=StyleConfig.COR_META_ASSINATURA, fontsize=10, ha="center", va="top",
-                            bbox=dict(facecolor="white", alpha=0.8, edgecolor=StyleConfig.COR_META_ASSINATURA, boxstyle="round,pad=0.5"))
+                               f"Meta Assinatura\n{tipo_meta}: {data_meta.strftime('%d/%m/%y')}", 
+                               color=StyleConfig.COR_META_ASSINATURA, fontsize=10, ha="center", va="top",
+                               bbox=dict(facecolor="white", alpha=0.8, edgecolor=StyleConfig.COR_META_ASSINATURA, boxstyle="round,pad=0.5"))
 
     eixo_gantt.grid(axis='x', linestyle='--', alpha=0.6)
     eixo_gantt.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
@@ -609,7 +633,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     st.pyplot(figura)
     plt.close(figura)
-
+    
 #========================================================================================================
 
 # --- Lógica Principal do App Streamlit (sem alterações) ---
