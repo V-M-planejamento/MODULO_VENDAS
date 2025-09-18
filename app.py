@@ -37,7 +37,7 @@ class StyleConfig:
     FONTE_ETAPA = {'size': 12, 'weight': 'bold', 'color': '#2c3e50'}
     FONTE_DATAS = {'family': 'monospace', 'size': 10, 'color': '#2c3e50'}
     FONTE_PORCENTAGEM = {'size': 12, 'weight': 'bold'}
-    FONTE_VARIACAO = {"size": 8, "weight": "bold"}  
+    FONTE_VARIACAO = {"size": 8, "weight": "bold"}
     CABECALHO = {'facecolor': '#2c3e50', 'edgecolor': 'none', 'pad': 4.0, 'color': 'white'}
     CELULA_PAR = {'facecolor': 'white', 'edgecolor': '#d1d5db', 'lw': 0.8}
     CELULA_IMPAR = {'facecolor': '#f1f3f5', 'edgecolor': '#d1d5db', 'lw': 0.8}
@@ -184,7 +184,7 @@ def criar_ordenacao_empreendimentos(df_original):
         empreendimentos_meta[empreendimento] = data_meta
     
     empreendimentos_ordenados = sorted(
-        empreendimentos_meta.keys(), 
+        empreendimentos_meta.keys(),
         key=lambda x: empreendimentos_meta[x]
     )
     
@@ -361,7 +361,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
 
         # NOVA FUNCIONALIDADE: Variação de término
         variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
-        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
+        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center",
                          color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
 
     # Desenho das barras do Gantt
@@ -542,7 +542,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
 
         # NOVA FUNCIONALIDADE: Variação de término
         variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
-        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center", 
+        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center",
                          color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
 
     datas_relevantes = []
@@ -618,7 +618,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
                 eixo_gantt.axvline(data_meta, color=StyleConfig.COR_META_ASSINATURA, linestyle="--", linewidth=1.7, alpha=0.7)
                 y_texto = eixo_gantt.get_ylim()[1] + 0.2
                 eixo_gantt.text(data_meta, y_texto,
-                               f"Meta Assinatura\n{tipo_meta}: {data_meta.strftime('%d/%m/%y')}", 
+                               f"Meta Assinatura\n{tipo_meta}: {data_meta.strftime('%d/%m/%y')}",
                                color=StyleConfig.COR_META_ASSINATURA, fontsize=10, ha="center", va="top",
                                bbox=dict(facecolor="white", alpha=0.8, edgecolor=StyleConfig.COR_META_ASSINATURA, boxstyle="round,pad=0.5"))
 
@@ -714,6 +714,7 @@ def criar_dados_exemplo():
 if show_welcome_screen():
     st.stop()  # Para a execução do resto do app enquanto o popup está ativo
 
+# --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
 # CSS customizado
 st.markdown("""
 <style>
@@ -740,8 +741,43 @@ st.markdown("""
     .stSidebar .stMultiSelect, .stSidebar .stSelectbox, .stSidebar .stRadio {
         margin-bottom: 1rem;
     }
+    
+    /* Estilo para botões de navegação */
+    .nav-button-container {
+        position: fixed;
+        right: 20px;
+        top: 20%;
+        transform: translateY(-20%);
+        z-index: 80;
+        background: white;
+        padding: 5px;
+        border-radius: 15px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+            
+    /* Estilo padrão */
+    .nav-link {
+        display: block;
+        background-color: #a6abb5;
+        color: white !important;
+        text-decoration: none !important;
+        border-radius: 10px;
+        padding: 5px 10px;
+        margin: 5px 0;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+            
+    /* Estilo para quando selecionado */
+    .nav-link:hover {
+        background-color: #ff4b4b; 
+        transform: scale(1.05);
+    }
 </style>
 """, unsafe_allow_html=True)
+# --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
 
 st.title("Módulo Vendas")
 
@@ -794,7 +830,7 @@ if df_data is not None and not df_data.empty:
         # Otimização: só calcular opções de empreendimento se UGB foi selecionada
         if selected_ugb:
             emp_options = get_unique_values(
-                df_data[df_data["UGB"].isin(selected_ugb)], 
+                df_data[df_data["UGB"].isin(selected_ugb)],
                 "Empreendimento"
             )
         else:
@@ -871,18 +907,34 @@ if df_data is not None and not df_data.empty:
 
 #========================================================================================================
 
-# Supondo que as funções e variáveis abaixo já existam no seu ambiente
-
 
 # --- Início do Bloco de Código Fornecido ---
 
     with tab1:
+        # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+        # Botões de navegação simples usando HTML com âncoras
+        st.markdown("""
+        <div class="nav-button-container">
+            <a href="#inicio" class="nav-link">↑</a>
+            <a href="#visao-detalhada" class="nav-link">↓</a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Âncora para o início
+        st.markdown('<div id="inicio"></div>', unsafe_allow_html=True)
+        # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+
         st.subheader("Gantt Comparativo")
         if df_filtered.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
             # Passa o parâmetro filtrar_nao_concluidas para a função de Gantt
             gerar_gantt(df_filtered.copy(), tipo_visualizacao, filtrar_nao_concluidas)
+
+        # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
+        # Âncora para a tabela
+        st.markdown('<div id="visao-detalhada"></div>', unsafe_allow_html=True)
+        # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
         
         st.subheader("Visão Detalhada por Empreendimento")
         if df_filtered.empty:
@@ -930,8 +982,8 @@ if df_data is not None and not df_data.empty:
                 # 3. Aplicar a ordenação dos empreendimentos baseada na meta
                 # Isso garante que a ordem dos blocos de empreendimento seja consistente.
                 df_agregado['ordem_empreendimento'] = pd.Categorical(
-                    df_agregado['Empreendimento'], 
-                    categories=empreendimentos_ordenados_por_meta, 
+                    df_agregado['Empreendimento'],
+                    categories=empreendimentos_ordenados_por_meta,
                     ordered=True
                 )
                 
@@ -961,11 +1013,11 @@ if df_data is not None and not df_data.empty:
                         percentual_medio = grupo['Percentual_Concluido'].mean()
                         
                         cabecalho = pd.DataFrame([{
-                            'Hierarquia': f'📂 {empreendimento}', 
-                            'Inicio_Prevista': grupo['Inicio_Prevista'].min(), 
+                            'Hierarquia': f'📂 {empreendimento}',
+                            'Inicio_Prevista': grupo['Inicio_Prevista'].min(),
                             'Termino_Prevista': grupo['Termino_Prevista'].max(),
-                            'Inicio_Real': grupo['Inicio_Real'].min(), 
-                            'Termino_Real': grupo['Termino_Real'].max(), 
+                            'Inicio_Real': grupo['Inicio_Real'].min(),
+                            'Termino_Real': grupo['Termino_Real'].max(),
                             'Var. Term': grupo['Var. Term'].mean(),
                             'Percentual_Concluido': percentual_medio
                         }])
@@ -1082,7 +1134,7 @@ if df_data is not None and not df_data.empty:
 
             # Column renaming and cleaning
             df_detalhes = df_detalhes.rename(columns={
-                'Termino_prevista': 'Termino_Prevista', 
+                'Termino_prevista': 'Termino_Prevista',
                 'Termino_real': 'Termino_Real'
             })
             
@@ -1096,9 +1148,9 @@ if df_data is not None and not df_data.empty:
             df_detalhes['Conclusao_Valida'] = False
             if '% concluído' in df_detalhes.columns:
                 mask = (
-                    (df_detalhes['% concluído'] == 100) & 
-                    (df_detalhes['Termino_Real'].notna()) & 
-                    ((df_detalhes['Termino_Prevista'].isna()) | 
+                    (df_detalhes['% concluído'] == 100) &
+                    (df_detalhes['Termino_Real'].notna()) &
+                    ((df_detalhes['Termino_Prevista'].isna()) |
                     (df_detalhes['Termino_Real'] <= df_detalhes['Termino_Prevista']))
                 )
                 df_detalhes.loc[mask, 'Conclusao_Valida'] = True
@@ -1108,25 +1160,25 @@ if df_data is not None and not df_data.empty:
             col1, col2 = st.columns(2)
             
             opcoes_classificacao = {
-                'Padrão (UGB, Empreendimento e Etapa)': ['UGB', 'Empreendimento', 'Etapa_Ordem'], 
+                'Padrão (UGB, Empreendimento e Etapa)': ['UGB', 'Empreendimento', 'Etapa_Ordem'],
                 'UGB (A-Z)': ['UGB'],
-                'Empreendimento (A-Z)': ['Empreendimento'], 
+                'Empreendimento (A-Z)': ['Empreendimento'],
                 'Data de Início Previsto (Mais antiga)': ['Inicio_Prevista'],
-                'Data de Término Previsto (Mais recente)': ['Termino_Prevista'], 
+                'Data de Término Previsto (Mais recente)': ['Termino_Prevista'],
             }
             
             with col1:
                 classificar_por = st.selectbox(
-                    "Ordenar tabela por:", 
-                    options=list(opcoes_classificacao.keys()), 
+                    "Ordenar tabela por:",
+                    options=list(opcoes_classificacao.keys()),
                     key="classificar_por_selectbox"
                 )
                 
             with col2:
                 ordem = st.radio(
-                    "Ordem:", 
-                    options=['Crescente', 'Decrescente'], 
-                    horizontal=True, 
+                    "Ordem:",
+                    options=['Crescente', 'Decrescente'],
+                    horizontal=True,
                     key="ordem_radio"
                 )
 
@@ -1142,7 +1194,7 @@ if df_data is not None and not df_data.empty:
                 
                 # Ordenar os dados originais pela data escolhida
                 df_detalhes_ordenado = df_detalhes.sort_values(
-                    by=[coluna_data, 'UGB', 'Empreendimento', 'Etapa'], 
+                    by=[coluna_data, 'UGB', 'Empreendimento', 'Etapa'],
                     ascending=[ordem == 'Crescente', True, True, True],
                     na_position='last'
                 )
@@ -1150,7 +1202,7 @@ if df_data is not None and not df_data.empty:
                 # Criar um mapeamento de ordem para UGB/Empreendimento baseado na primeira ocorrência
                 ordem_ugb_emp = df_detalhes_ordenado.groupby(['UGB', 'Empreendimento']).first().reset_index()
                 ordem_ugb_emp = ordem_ugb_emp.sort_values(
-                    by=coluna_data, 
+                    by=coluna_data,
                     ascending=(ordem == 'Crescente'),
                     na_position='last'
                 )
@@ -1158,16 +1210,16 @@ if df_data is not None and not df_data.empty:
                 
                 # Mapear a ordem de volta para os dados originais
                 df_detalhes = df_detalhes.merge(
-                    ordem_ugb_emp[['UGB', 'Empreendimento', 'ordem_index']], 
-                    on=['UGB', 'Empreendimento'], 
+                    ordem_ugb_emp[['UGB', 'Empreendimento', 'ordem_index']],
+                    on=['UGB', 'Empreendimento'],
                     how='left'
                 )
                 
             # --- DATA AGGREGATION ---
             agg_dict = {
-                'Inicio_Prevista': ('Inicio_Prevista', 'min'), 
+                'Inicio_Prevista': ('Inicio_Prevista', 'min'),
                 'Termino_Prevista': ('Termino_Prevista', 'max'),
-                'Inicio_Real': ('Inicio_Real', 'min'), 
+                'Inicio_Real': ('Inicio_Real', 'min'),
                 'Termino_Real': ('Termino_Real', 'max'),
                 'Concluido_Valido': ('Conclusao_Valida', 'any')
             }
@@ -1196,13 +1248,13 @@ if df_data is not None and not df_data.empty:
             if classificar_por in ['Data de Início Previsto (Mais antiga)', 'Data de Término Previsto (Mais recente)']:
                 # Para ordenações por data, usar a ordem_index criada anteriormente
                 df_ordenado = df_agregado.sort_values(
-                    by=['ordem_index', 'UGB', 'Empreendimento', 'Etapa_Ordem'], 
+                    by=['ordem_index', 'UGB', 'Empreendimento', 'Etapa_Ordem'],
                     ascending=[True, True, True, True]
                 )
             else:
                 # Para outras ordenações, usar o método original
                 df_ordenado = df_agregado.sort_values(
-                    by=opcoes_classificacao[classificar_por], 
+                    by=opcoes_classificacao[classificar_por],
                     ascending=(ordem == 'Crescente')
                 )
             
@@ -1210,9 +1262,9 @@ if df_data is not None and not df_data.empty:
 
             # --- PIVOT TABLE CREATION ---
             df_pivot = df_ordenado.pivot_table(
-                index=['UGB', 'Empreendimento'], 
-                columns='Etapa', 
-                values=['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term'], 
+                index=['UGB', 'Empreendimento'],
+                columns='Etapa',
+                values=['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real', 'Var. Term'],
                 aggfunc='first'
             )
 
@@ -1241,16 +1293,16 @@ if df_data is not None and not df_data.empty:
             # --- COLUMN RENAMING FOR MULTIINDEX ---
             novos_nomes = []
             for col in df_final.columns:
-                if col[0] in ['UGB', 'Empreendimento']: 
+                if col[0] in ['UGB', 'Empreendimento']:
                     novos_nomes.append((col[0], ''))  # Segundo nível vazio para colunas simples
                 else:
                     tipo, etapa = col[0], col[1]
                     nome_etapa = sigla_para_nome_completo.get(etapa, etapa)
                     nome_tipo = {
-                        'Inicio_Prevista': 'Início Prev.', 
-                        'Termino_Prevista': 'Término Prev.', 
-                        'Inicio_Real': 'Início Real', 
-                        'Termino_Real': 'Término Real', 
+                        'Inicio_Prevista': 'Início Prev.',
+                        'Termino_Prevista': 'Término Prev.',
+                        'Inicio_Real': 'Início Real',
+                        'Termino_Real': 'Término Real',
                         'Var. Term': 'VarTerm'
                     }[tipo]
                     novos_nomes.append((nome_etapa, nome_tipo))
@@ -1259,11 +1311,11 @@ if df_data is not None and not df_data.empty:
 
             # --- FORMATTING FUNCTIONS ---
             def formatar_valor(valor, tipo):
-                if pd.isna(valor): 
+                if pd.isna(valor):
                     return "-"
-                if tipo == 'data': 
+                if tipo == 'data':
                     return valor.strftime("%d/%m/%Y")
-                if tipo == 'variacao': 
+                if tipo == 'variacao':
                     return f"{'▼' if valor > 0 else '▲'} {abs(int(valor))} dias"
                 return str(valor)
 
@@ -1276,8 +1328,8 @@ if df_data is not None and not df_data.empty:
                     if etapa_sigla:
                         # Busca os dados da etapa específica no df_agregado
                         etapa_data = df_agregado[
-                            (df_agregado['UGB'] == row[('UGB', '')]) & 
-                            (df_agregado['Empreendimento'] == row[('Empreendimento', '')]) & 
+                            (df_agregado['UGB'] == row[('UGB', '')]) &
+                            (df_agregado['Empreendimento'] == row[('Empreendimento', '')]) &
                             (df_agregado['Etapa'] == etapa_sigla)
                         ]
                         
@@ -1290,12 +1342,12 @@ if df_data is not None and not df_data.empty:
                             # Verifica se está 100% concluído
                             if percentual == 100:
                                 if pd.notna(termino_real) and pd.notna(termino_previsto):
-                                    if termino_real < termino_previsto: 
+                                    if termino_real < termino_previsto:
                                         return "color: #2EAF5B; font-weight: bold;"  # Concluído antes
-                                    elif termino_real > termino_previsto: 
+                                    elif termino_real > termino_previsto:
                                         return "color: #C30202; font-weight: bold;"  # Concluído com atraso
                             # Verifica se está atrasado (data passou mas não está 100%)
-                            elif pd.notna(termino_real) and (termino_real < hoje): 
+                            elif pd.notna(termino_real) and (termino_real < hoje):
                                 return "color: #A38408; font-weight: bold;"  # Aguardando atualização
                 
                 # Padrão para outras colunas ou casos não especificados
@@ -1305,9 +1357,9 @@ if df_data is not None and not df_data.empty:
             df_formatado = df_final.copy()
             for col_tuple in df_formatado.columns:
                 if len(col_tuple) == 2 and col_tuple[1] != '':  # Ignorar colunas sem segundo nível
-                    if any(x in col_tuple[1] for x in ["Início Prev.", "Término Prev.", "Início Real", "Término Real"]): 
+                    if any(x in col_tuple[1] for x in ["Início Prev.", "Término Prev.", "Início Real", "Término Real"]):
                         df_formatado[col_tuple] = df_formatado[col_tuple].apply(lambda x: formatar_valor(x, "data"))
-                    elif "VarTerm" in col_tuple[1]: 
+                    elif "VarTerm" in col_tuple[1]:
                         df_formatado[col_tuple] = df_formatado[col_tuple].apply(lambda x: formatar_valor(x, "variacao"))
 
             # --- STYLING FUNCTION ---
@@ -1331,7 +1383,7 @@ if df_data is not None and not df_data.empty:
                             else:
                                 # Aplicar cores condicionais para Início/Término Real
                                 if col_tuple[1] in ['Início Real', 'Término Real']:
-                                    row_dict = {('UGB', ''): row[('UGB', '')], 
+                                    row_dict = {('UGB', ''): row[('UGB', '')],
                                             ('Empreendimento', ''): row[('Empreendimento', '')]}
                                     cor_condicional = determinar_cor(row_dict, col_tuple)
                                     if cor_condicional:
@@ -1403,7 +1455,7 @@ if df_data is not None and not df_data.empty:
                 if i > 0:  # Não aplicar para a primeira etapa
                     # Encontrar a primeira coluna de cada etapa
                     etapa_nome = sigla_para_nome_completo.get(etapa, etapa)
-                    col_idx = next((idx for idx, col in enumerate(df_final.columns) 
+                    col_idx = next((idx for idx, col in enumerate(df_final.columns)
                                 if col[0] == etapa_nome), None)
                     if col_idx:
                         header_styles.append({
@@ -1421,9 +1473,9 @@ if df_data is not None and not df_data.empty:
 
             # --- DISPLAY RESULTS ---
             st.dataframe(
-                styled_df, 
-                height=min(35 * len(df_final) + 40, 600), 
-                hide_index=True, 
+                styled_df,
+                height=min(35 * len(df_final) + 40, 600),
+                hide_index=True,
                 use_container_width=True
             )
             
@@ -1438,4 +1490,3 @@ if df_data is not None and not df_data.empty:
             </div>""", unsafe_allow_html=True)
 else:
     st.error("❌ Não foi possível carregar ou gerar os dados.")
-
