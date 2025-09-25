@@ -1007,11 +1007,13 @@ if df_data is not None and not df_data.empty:
                     tabela_final_lista.append(tabela_para_processar)
                 else:
                     # Agrupa por 'ordem_empreendimento' para manter a ordem correta
-                    for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
+                 for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
+                    # --- FIX: Add this condition to skip empty groups ---
+                    if not grupo.empty:
                         empreendimento = grupo['Empreendimento'].iloc[0]
-                        
+
                         percentual_medio = grupo['Percentual_Concluido'].mean()
-                        
+
                         cabecalho = pd.DataFrame([{
                             'Hierarquia': f'📂 {empreendimento}',
                             'Inicio_Prevista': grupo['Inicio_Prevista'].min(),
@@ -1022,7 +1024,7 @@ if df_data is not None and not df_data.empty:
                             'Percentual_Concluido': percentual_medio
                         }])
                         tabela_final_lista.append(cabecalho)
-                        
+
                         grupo_formatado = grupo.copy()
                         grupo_formatado['Hierarquia'] = ' &nbsp; &nbsp; ' + grupo_formatado['Etapa'].map(sigla_para_nome_completo)
                         tabela_final_lista.append(grupo_formatado)
