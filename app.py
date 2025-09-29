@@ -227,6 +227,50 @@ def aplicar_ordenacao_final(df, empreendimentos_ordenados):
     
     return df_ordenado.reset_index(drop=True)
 
+def aplicar_regra_definicao_modulo(df_completo):
+    """
+    Aplica a regra de negócio para a etapa 'DEFINIÇÃO DO MÓDULO' (DM).
+    Se DM não tem dados reais, mas outra etapa do mesmo empreendimento está 100%,
+    define o percentual de DM como 100%.
+    """
+    # Usaremos a sigla 'DM' para a etapa, conforme seu mapeamento
+    ETAPA_MODULO = 'DM'
+    
+    # Retorna o dataframe original se as colunas necessárias não existirem
+    if 'Empreendimento' not in df_completo.columns or '% concluído' not in df_completo.columns:
+        return df_completo
+
+    df_modificado = df_completo.copy()
+    
+    # Itera sobre cada empreendimento individualmente
+    for empreendimento in df_modificado['Empreendimento'].unique():
+        # Filtra os dados apenas para o empreendimento atual
+        indices_empreendimento = df_modificado[df_modificado['Empreendimento'] == empreendimento].index
+        
+        # Localiza a etapa de Módulo e as outras etapas
+        indice_modulo = df_modificado[(df_modificado['Empreendimento'] == empreendimento) & (df_modificado['Etapa'] == ETAPA_MODULO)].index
+        indices_outras_etapas = df_modificado[(df_modificado['Empreendimento'] == empreendimento) & (df_modificado['Etapa'] != ETAPA_MODULO)].index
+
+        # Se a etapa de Módulo não existir para este projeto, pula para o próximo
+        if indice_modulo.empty:
+            continue
+            
+        # Pega o primeiro (e único) índice da etapa de módulo
+        idx_mod = indice_modulo[0]
+
+        # Condição 1: Verifica se a etapa de Módulo NÃO tem dados reais
+        modulo_sem_dados_reais = pd.isna(df_modificado.loc[idx_mod, 'Termino_Real'])
+        
+        if modulo_sem_dados_reais:
+            # Condição 2: Verifica se QUALQUER outra etapa deste empreendimento está 100%
+            outra_etapa_concluida = (df_modificado.loc[indices_outras_etapas, '% concluído'] == 100).any()
+            
+            # Se ambas as condições forem verdadeiras, aplica a regra
+            if outra_etapa_concluida:
+                df_modificado.loc[idx_mod, '% concluído'] = 100.0
+                
+    return df_modificado
+
 # --- Funções de Geração do Gráfico ---
 
 def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
@@ -250,6 +294,8 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
         df.drop('%_corrigido', axis=1, inplace=True)
     else:
         df['% concluído'] = 0.0
+
+    df = aplicar_regra_definicao_modulo(df)        
 
     for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
         if col in df.columns:
@@ -337,6 +383,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         'Inicio_Real': 'min', 'Termino_Real': 'max',
         '% concluído': 'max'
     }).reset_index()
+
 
     # Desenho da tabela
     for _, linha in dados_consolidados.iterrows():
@@ -970,7 +1017,6 @@ if df_data is not None and not df_data.empty:
             options=etapas_para_exibir
         )
 
-
     # 4️⃣ NOVO FILTRO: Etapas não concluídas
     st.sidebar.markdown("---")
     filtrar_nao_concluidas = st.sidebar.checkbox(
@@ -983,32 +1029,45 @@ if df_data is not None and not df_data.empty:
     st.sidebar.markdown("---")
     tipo_visualizacao = st.sidebar.radio("Mostrar dados:", ("Ambos", "Previsto", "Real"))
 
-    # Aplicar filtro de etapa
-    if selected_etapa_nome != "Todos" and not df_filtered.empty:
+    df_processamento = df_filtered.copy()
+
+    # Passo 2: Centralizar o cálculo de porcentagem AQUI (removido de 'gerar_gantt')
+    if '% concluído' in df_processamento.columns:
+        df_porcentagem = df_processamento.groupby(['Empreendimento', 'Etapa']).apply(calcular_porcentagem_correta).reset_index(name='%_corrigido')
+        df_processamento = pd.merge(df_processamento, df_porcentagem, on=['Empreendimento', 'Etapa'], how='left')
+        df_processamento['% concluído'] = df_processamento['%_corrigido'].fillna(0)
+        df_processamento.drop('%_corrigido', axis=1, inplace=True)
+    else:
+        df_processamento['% concluído'] = 0.0
+
+    # Passo 3: Aplicar a sua regra de negócio APÓS o cálculo de porcentagem
+    # Este dataframe agora é a fonte de dados final e correta.
+    df_com_regra = aplicar_regra_definicao_modulo(df_processamento)
+
+    # Passo 4: Aplicar o filtro de etapa sobre os dados já tratados
+    if selected_etapa_nome != "Todos" and not df_com_regra.empty:
         try:
             sigla_selecionada = nome_completo_para_sigla.get(selected_etapa_nome, selected_etapa_nome)
-            df_filtered = df_filtered[df_filtered["Etapa"] == sigla_selecionada]
+            df_final = df_com_regra[df_com_regra["Etapa"] == sigla_selecionada]
         except NameError:
-            df_filtered = df_filtered[df_filtered["Etapa"] == selected_etapa_nome]
+            df_final = df_com_regra[df_com_regra["Etapa"] == selected_etapa_nome]
+    else:
+        df_final = df_com_regra
 
-    # CORREÇÃO: NÃO aplicar filtro de etapas não concluídas aqui
-    # O filtro será aplicado dentro da função gerar_gantt
-    
-    # Mostrar informação sobre o filtro aplicado
-    if filtrar_nao_concluidas and not df_filtered.empty:
-        df_temp_filtrado = filtrar_etapas_nao_concluidas(df_filtered)
+    # Passo 5: Exibir informações na sidebar com base no dataframe final
+    if filtrar_nao_concluidas and not df_final.empty:
+        df_temp_filtrado = filtrar_etapas_nao_concluidas(df_final)
         if not df_temp_filtrado.empty:
             total_etapas_nao_concluidas = len(df_temp_filtrado)
             st.sidebar.success(f"✅ Mostrando {total_etapas_nao_concluidas} etapas não concluídas")
         else:
             st.sidebar.info("ℹ️ Todas as etapas estão 100% concluídas")
 
-    # Abas principais
+    # O código das abas (tabs) continua o mesmo, usando a variável 'df_final'
     tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
 
 
 #========================================================================================================
-
 
 # --- Início do Bloco de Código Fornecido ---
 
@@ -1027,11 +1086,11 @@ if df_data is not None and not df_data.empty:
         # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
 
         st.subheader("Gantt Comparativo")
-        if df_filtered.empty:
+        # Altere df_filtered para df_final
+        if df_final.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
-            # Passa o parâmetro filtrar_nao_concluidas para a função de Gantt
-            gerar_gantt(df_filtered.copy(), tipo_visualizacao, filtrar_nao_concluidas)
+            gerar_gantt(df_final.copy(), tipo_visualizacao, filtrar_nao_concluidas)
 
         # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
         # Âncora para a tabela
@@ -1039,11 +1098,12 @@ if df_data is not None and not df_data.empty:
         # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
         
         st.subheader("Visão Detalhada por Empreendimento")
-        if df_filtered.empty:
+        # Altere df_filtered para df_final
+        if df_final.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
-            # --- INÍCIO DA LÓGICA CORRIGIDA ---
-            df_detalhes = df_filtered.copy()
+            # Altere df_filtered para df_final
+            df_detalhes = df_final.copy()
             
             # 1. Obter a ordem correta dos empreendimentos ANTES de qualquer filtro.
             # A ordenação é baseada na data da meta de assinatura (etapa 'M').
@@ -1217,18 +1277,19 @@ if df_data is not None and not df_data.empty:
                     
                     st.markdown(tabela_estilizada.to_html(), unsafe_allow_html=True)
 
-
-
 #========================================================================================================
 
     with tab2:
         st.subheader("Tabelão Horizontal")
 
-        if df_filtered.empty:
+    # Altere df_filtered para df_final
+        if df_final.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
-            # --- DATA PREPARATION ---
-            df_detalhes = df_filtered.copy()
+            # Altere df_filtered para df_final
+            df_detalhes = df_final.copy()
+        
+        # ... (resto do código da tab2 permanece o mesmo) ...
             
             # CORREÇÃO: Aplicar filtragem de etapas não concluídas se necessário
             if filtrar_nao_concluidas:
