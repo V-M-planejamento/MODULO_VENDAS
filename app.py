@@ -88,6 +88,27 @@ def calcular_dias_uteis(inicio, fim):
         return np.busday_count(data_inicio, data_fim) + 1
     return 0
 
+def calcular_variacao_duracao(duracao_real, duracao_prevista):
+    """
+    Calcula a variação entre a duração real e a duração prevista em dias.
+    Retorna uma tupla (texto_variacao, cor_variacao).
+    """
+    if duracao_real > 0 and duracao_prevista > 0:
+        diferenca_dias = duracao_real - duracao_prevista
+        
+        if diferenca_dias > 0:
+            # Demorou mais que o previsto - vermelho
+            return f"VD: +{diferenca_dias}d", "#89281d"
+        elif diferenca_dias < 0:
+            # Demorou menos que o previsto - verde
+            return f"VD: {diferenca_dias}d", "#0b803c"
+        else:
+            # No prazo - cinza
+            return "VD: 0d", "#666666"
+    else:
+        # Sem dados suficientes - cinza
+        return "VD: -", "#666666"
+
 def calcular_variacao_termino(termino_real, termino_previsto):
     """
     Calcula a variação entre o término real e o término previsto.
@@ -99,16 +120,16 @@ def calcular_variacao_termino(termino_real, termino_previsto):
         
         if diferenca_dias > 0:
             # Atrasado - vermelho
-            return f"V: +{diferenca_dias}d", "#89281d"
+            return f"VT: +{diferenca_dias}d", "#89281d"
         elif diferenca_dias < 0:
             # Adiantado - verde
-            return f"V: {diferenca_dias}d", "#0b803c"
+            return f"VT: {diferenca_dias}d", "#0b803c"
         else:
             # No prazo - cinza
-            return "V: 0d", "#666666"
+            return "VT: 0d", "#666666"
     else:
         # Sem dados suficientes - cinza
-        return "V: -", "#666666"
+        return "VT: -", "#666666"
 
 def calcular_porcentagem_correta(grupo):
     if '% concluído' not in grupo.columns:
@@ -343,26 +364,67 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
         
-        cor_texto = "#000000"
-        cor_caixa = estilo_celula['facecolor']
+    # --- BLOCO DE STATUS COM TRÊS CAIXAS ALINHADAS ---
+
+        # 1. Lógica de cores CORRIGIDA
+        cor_status = {'face': '#e9ecef', 'text': '#495057', 'edge': '#ced4da'} # Padrão: Cinza (Não Iniciado)
+        hoje = pd.Timestamp.now().normalize()
+
         if percentual == 100:
             if pd.notna(termino_real) and pd.notna(termino_previsto):
                 if termino_real < termino_previsto:
-                    cor_texto, cor_caixa = "#2EAF5B", "#e6f5eb"
+                    cor_status = {'face': '#d4edda', 'text': "#1F8944", 'edge': '#c3e6cb'} # Verde: Concluído no Prazo/Adiantado
                 elif termino_real > termino_previsto:
-                    cor_texto, cor_caixa = "#C30202", "#fae6e6"
+                    cor_status = {'face': '#f8d7da', 'text': '#721c24', 'edge': '#f5c6cb'} # Vermelho: Concluído com Atraso
+
+        # CORREÇÃO PRINCIPAL ESTÁ AQUI
         elif percentual < 100:
-            if pd.notna(termino_previsto) and (termino_previsto < hoje):
-                cor_texto, cor_caixa = "#A38408", "#faf3d9"
+            if pd.notna(termino_real) and (termino_real < hoje):
+                cor_status = {'face': '#fff3cd', 'text': '#856404', 'edge': "#f9e29c"} # Amarelo: Em Andamento, Atrasado
+            
+    
+        # 2. Definir a geometria para as três caixas empilhadas (com mais espaçamento)
+        largura_caixa = 0.2
+        altura_caixa = 0.25  # <-- ALTURA REDUZIDA AQUI (era 0.3)
+        gap_vertical = 0.02  # Espaço entre as caixas da mesma etapa
 
-        eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
-        percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
-        eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
+        # Lógica de posicionamento aprimorada para garantir a centralização vertical
+        altura_total_bloco = (3 * altura_caixa) + (2 * gap_vertical)
+        y_inicial_topo = y_pos - (altura_total_bloco / 2)
 
-        # NOVA FUNCIONALIDADE: Variação de término
-        variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
-        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center",
-                         color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
+        # Posições Y finais para cada caixa
+        y_caixa_topo = y_inicial_topo
+        y_caixa_meio = y_inicial_topo + altura_caixa + gap_vertical
+        y_caixa_base = y_inicial_topo + (2 * altura_caixa) + (2 * gap_vertical)
+
+        # 3. Desenhar a Caixa 1 (Topo): Percentual
+        percentual_texto = f"{int(percentual)}%"
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_topo), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_topo + altura_caixa / 2, percentual_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_PORCENTAGEM)
+
+        # 4. Desenhar a Caixa 2 (Meio): Variação de Término (V:)
+        variacao_term_texto, _ = calcular_variacao_termino(termino_real, termino_previsto)
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_meio), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_meio + altura_caixa / 2, variacao_term_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_VARIACAO)
+        
+        # 5. Desenhar a Caixa 3 (Base): Variação de Duração (D:)
+        variacao_dur_texto, _ = calcular_variacao_duracao(dias_uteis_real, dias_uteis_prev)
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_base), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_base + altura_caixa / 2, variacao_dur_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_VARIACAO)
+
+        # --- FIM DO BLOCO DE STATUS ---
 
     # Desenho das barras do Gantt
     datas_relevantes = []
@@ -523,27 +585,67 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
         percentual = linha['% concluído']
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
-        
-        cor_texto = "#000000"
-        cor_caixa = estilo_celula['facecolor']
+
+    # --- BLOCO DE STATUS COM TRÊS CAIXAS ALINHADAS ---
+
+        # 1. Lógica de cores CORRIGIDA
+        cor_status = {'face': '#e9ecef', 'text': '#495057', 'edge': '#ced4da'} # Padrão: Cinza (Não Iniciado)
+        hoje = pd.Timestamp.now().normalize()
+
         if percentual == 100:
             if pd.notna(termino_real) and pd.notna(termino_previsto):
                 if termino_real < termino_previsto:
-                    cor_texto, cor_caixa = "#2EAF5B", "#e6f5eb"
+                    cor_status = {'face': '#d4edda', 'text': "#1F8944", 'edge': '#c3e6cb'} # Verde: Concluído no Prazo/Adiantado
                 elif termino_real > termino_previsto:
-                    cor_texto, cor_caixa = "#C30202", "#fae6e6"
+                    cor_status = {'face': '#f8d7da', 'text': '#721c24', 'edge': '#f5c6cb'} # Vermelho: Concluído com Atraso
+
         elif percentual < 100:
             if pd.notna(termino_real) and (termino_real < hoje):
-                cor_texto, cor_caixa = "#A38408", "#faf3d9"
+                cor_status = {'face': '#fff3cd', 'text': '#856404', 'edge': "#f9e29c"} # Amarelo: Em Andamento, Atrasado
+            
+    
+        # 2. Definir a geometria para as três caixas empilhadas (com mais espaçamento)
+        largura_caixa = 0.2
+        altura_caixa = 0.25  # <-- ALTURA REDUZIDA AQUI (era 0.3)
+        gap_vertical = 0.02  # Espaço entre as caixas da mesma etapa
 
-        eixo_tabela.add_patch(Rectangle((0.78, y_pos - 0.2), 0.2, 0.4, facecolor=cor_caixa, edgecolor="#d1d5db", lw=0.8))
-        percentual_texto = f"{percentual:.1f}%" if percentual % 1 != 0 else f"{int(percentual)}%"
-        eixo_tabela.text(0.88, y_pos, percentual_texto, va="center", ha="center", color=cor_texto, **StyleConfig.FONTE_PORCENTAGEM)
+        # Lógica de posicionamento aprimorada para garantir a centralização vertical
+        altura_total_bloco = (3 * altura_caixa) + (2 * gap_vertical)
+        y_inicial_topo = y_pos - (altura_total_bloco / 2)
 
-        # NOVA FUNCIONALIDADE: Variação de término
-        variacao_texto, variacao_cor = calcular_variacao_termino(termino_real, termino_previsto)
-        eixo_tabela.text(0.88, y_pos + StyleConfig.OFFSET_VARIACAO_TERMINO, variacao_texto, va="center", ha="center",
-                         color=variacao_cor, **StyleConfig.FONTE_VARIACAO)
+        # Posições Y finais para cada caixa
+        y_caixa_topo = y_inicial_topo
+        y_caixa_meio = y_inicial_topo + altura_caixa + gap_vertical
+        y_caixa_base = y_inicial_topo + (2 * altura_caixa) + (2 * gap_vertical)
+
+        # 3. Desenhar a Caixa 1 (Topo): Percentual
+        percentual_texto = f"{int(percentual)}%"
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_topo), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_topo + altura_caixa / 2, percentual_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_PORCENTAGEM)
+
+        # 4. Desenhar a Caixa 2 (Meio): Variação de Término (V:)
+        variacao_term_texto, _ = calcular_variacao_termino(termino_real, termino_previsto)
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_meio), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_meio + altura_caixa / 2, variacao_term_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_VARIACAO)
+        
+        # 5. Desenhar a Caixa 3 (Base): Variação de Duração (D:)
+        variacao_dur_texto, _ = calcular_variacao_duracao(dias_uteis_real, dias_uteis_prev)
+        eixo_tabela.add_patch(
+            Rectangle((0.78, y_caixa_base), largura_caixa, altura_caixa, 
+                      facecolor=cor_status['face'], edgecolor=cor_status['edge'], lw=1)
+        )
+        eixo_tabela.text(0.88, y_caixa_base + altura_caixa / 2, variacao_dur_texto, 
+                         va="center", ha="center", color=cor_status['text'], **StyleConfig.FONTE_VARIACAO)
+
+        # --- FIM DO BLOCO DE STATUS ---
 
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
