@@ -10,6 +10,9 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
     """
     Renderiza um gráfico Matplotlib diretamente no HTML com um botão de tela cheia
     posicionado corretamente no canto superior direito.
+    
+    NOVA FUNCIONALIDADE: A barra lateral é automaticamente recolhida quando 
+    entra em tela cheia e expandida novamente ao sair.
 
     Args:
         figure (plt.Figure): A figura Matplotlib a ser exibida.
@@ -88,17 +91,45 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
         </div>
 
         <script>
-            // O JavaScript para o visualizador (exatamente o mesmo de antes)
+            // O JavaScript para o visualizador com funcionalidade de recolher barra lateral
             (function() {{
                 const parentDoc = window.parent.document;
                 const button = document.getElementById('{unique_id}');
                 const viewerImgSrc = 'data:image/png;base64,{img_base64_viewer}';
 
-                const styleId = 'viewer-hide-streamlit-header';
+                // MODIFICAÇÃO: CSS atualizado para recolher a barra lateral
+                const styleId = 'viewer-hide-streamlit-elements';
                 if (!parentDoc.getElementById(styleId)) {{
                     const style = parentDoc.createElement('style');
                     style.id = styleId;
-                    style.innerHTML = `body.viewer-active header[data-testid="stHeader"] {{ display: none; }}`;
+                    style.innerHTML = `
+                        /* Oculta o header do Streamlit quando em tela cheia */
+                        body.viewer-active header[data-testid="stHeader"] {{
+                            display: none;
+                        }}
+                        
+                        /* NOVA FUNCIONALIDADE: Recolhe a barra lateral quando em tela cheia */
+                        body.viewer-active section[data-testid="stSidebar"] {{
+                            transform: translateX(-100%);
+                            transition: transform 0.3s ease-in-out;
+                        }}
+                        
+                        /* Ajusta o conteúdo principal para ocupar toda a largura */
+                        body.viewer-active .main .block-container {{
+                            max-width: 100% !important;
+                            padding-left: 1rem !important;
+                            transition: all 0.3s ease-in-out;
+                        }}
+                        
+                        /* Garante que a transição seja suave ao voltar */
+                        section[data-testid="stSidebar"] {{
+                            transition: transform 0.3s ease-in-out;
+                        }}
+                        
+                        .main .block-container {{
+                            transition: all 0.3s ease-in-out;
+                        }}
+                    `;
                     parentDoc.head.appendChild(style);
                 }}
 
@@ -119,10 +150,10 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
                     }}
                 }}
 
-                loadCss('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css' );
+                loadCss('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css');
 
                 button.addEventListener('click', function() {{
-                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js', function( ) {{
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js', function() {{
                         const tempImage = parentDoc.createElement('img');
                         tempImage.src = viewerImgSrc;
                         tempImage.style.display = 'none';
@@ -131,9 +162,14 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
                         const viewer = new parent.Viewer(tempImage, {{
                             inline: false, navbar: false, button: true, title: false,
                             toolbar: true, fullscreen: true, keyboard: true, zIndex: 99999,
-                            shown: () => parentDoc.body.classList.add('viewer-active'),
+                            // MODIFICAÇÃO: Eventos atualizados para controlar a barra lateral
+                            shown: () => {{
+                                parentDoc.body.classList.add('viewer-active');
+                                console.log('Tela cheia ativada - Barra lateral recolhida');
+                            }},
                             hidden: () => {{
                                 parentDoc.body.classList.remove('viewer-active');
+                                console.log('Tela cheia desativada - Barra lateral expandida');
                                 viewer.destroy();
                                 parentDoc.body.removeChild(tempImage);
                             }},
@@ -154,21 +190,33 @@ def create_fullscreen_image_viewer(figure: plt.Figure,
 if __name__ == '__main__':
     st.set_page_config(layout="wide")
     
-    st.sidebar.image("https://viannaemoura.com.br/wp-content/uploads/2023/09/logo-Vianna-Moura.png", use_column_width=True )
+    st.sidebar.image("https://viannaemoura.com.br/wp-content/uploads/2023/09/logo-Vianna-Moura.png", use_column_width=True)
     st.sidebar.header("Barra Lateral")
+    st.sidebar.write("Esta barra lateral será automaticamente recolhida quando você entrar em tela cheia!")
+    st.sidebar.selectbox("Filtro de exemplo", ["Opção 1", "Opção 2", "Opção 3"])
 
-    st.title("Solução Final: Botão e Gráfico Envelopados")
-    st.success("Agora o botão está perfeitamente posicionado sobre o gráfico porque ambos vivem no mesmo container HTML.")
+    st.title("🎯 Visualizador com Barra Lateral Inteligente")
+    st.success("✨ NOVA FUNCIONALIDADE: A barra lateral agora recolhe automaticamente em tela cheia!")
+    
+    st.markdown("""
+    ### Como funciona:
+    1. **Clique no botão de tela cheia** (⛶) no canto superior direito do gráfico
+    2. **A barra lateral será recolhida automaticamente** com uma animação suave
+    3. **Ao sair da tela cheia**, a barra lateral retorna à posição original
+    
+    Esta implementação oferece uma experiência mais limpa e imersiva para visualização de gráficos!
+    """)
 
     # 1. Criar a figura
     fig, ax = plt.subplots(figsize=(16, 8)) # Tamanho de exemplo
     ax.barh(['Tarefa A', 'Tarefa B', 'Tarefa C'], [10, 20, 15], left=[5, 0, 12])
-    ax.set_title("Gráfico de Gantt com Botão Corretamente Posicionado")
+    ax.set_title("Gráfico de Gantt com Barra Lateral Inteligente")
     ax.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
 
     # 2. Usar a nova função para renderizar tudo de uma vez
-    create_fullscreen_image_viewer(fig, empreendimento="gantt_final")
+    create_fullscreen_image_viewer(fig, empreendimento="gantt_sidebar_smart")
 
     st.markdown("---")
-    st.write("Outro conteúdo da página.")
+    st.write("🔍 **Teste a funcionalidade:** Clique no botão de tela cheia e observe como a barra lateral se comporta!")
+    st.info("💡 **Dica:** A transição é suave e reversível - experimente entrar e sair da tela cheia várias vezes.")
