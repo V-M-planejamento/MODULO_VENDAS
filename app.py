@@ -8,9 +8,14 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
+from typing import Optional
+import time 
+
+# --- Component and utility imports ---
 from dropdown_component import simple_multiselect_dropdown
 from popup import show_welcome_screen
 from calculate_business_days import calculate_business_days
+from fullscreen_image_component import create_fullscreen_image_viewer
 
 # --- Bloco de Importação de Dados ---
 try:
@@ -20,7 +25,7 @@ except ImportError:
     st.warning("Scripts de processamento não encontrados. O app usará dados de exemplo.")
     tratar_e_retornar_dados_previstos = None
     processar_smartsheet_main = None
-
+    
 # --- Configurações de Estilo ---
 class StyleConfig:
     LARGURA_GANTT = 10
@@ -324,12 +329,9 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
         # Caso tradicional: múltiplos empreendimentos com múltiplas etapas
         for empreendimento in empreendimentos_ordenados:
             if empreendimento in df['Empreendimento'].unique():
-                # REMOVIDO: st.subheader(f"Empreendimento: {empreendimento.replace('CONDOMINIO ', '')}")
                 df_filtrado = df[df['Empreendimento'] == empreendimento]
                 df_original_filtrado = df_original_completo[df_original_completo['Empreendimento'] == empreendimento]
-                
-                gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado)
-                # REMOVIDO: st.markdown("---")
+                gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado, empreendimento=empreendimento)
     else:
         # Caso único empreendimento (com uma ou múltiplas etapas)
         gerar_gantt_individual(df, tipo_visualizacao, df_original=df_original_completo)
@@ -383,7 +385,6 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         'Inicio_Real': 'min', 'Termino_Real': 'max',
         '% concluído': 'max'
     }).reset_index()
-
 
     # Desenho da tabela
     for _, linha in dados_consolidados.iterrows():
@@ -542,10 +543,20 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     eixo_gantt.legend(handles=handles_legenda, loc='upper center', bbox_to_anchor=(1.1, 1), frameon=False, borderaxespad=0.1)
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-    st.pyplot(figura)
-    plt.close(figura)
+    
+# CORREÇÃO: Definir unique_key apropriadamente
+    if empreendimento is not None:
+        unique_key = empreendimento
+    else:
+        # Se não há empreendimento específico, criar uma chave única
+        unique_key = f"gantt_{int(time.time() * 1000)}"
 
-def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
+    create_fullscreen_image_viewer(
+        figure=figura, 
+        empreendimento=unique_key
+    )
+
+def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empreendimento: Optional[str] = None):
     if df.empty:
         return
 
@@ -729,7 +740,14 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
             # --- FIM DA MODIFICAÇÃO ---
             
     if not rotulo_para_posicao:
-        st.pyplot(figura)
+        # CORREÇÃO SIMPLIFICADA
+        unique_key = f"empty_{int(time.time() * 1000)}"
+        create_fullscreen_image_viewer(
+            figura, 
+            show_regular=True, 
+            button_text=f"🔍 Visualizar {empreendimento.replace('CONDOMINIO ', '')} em Tela Cheia",
+            empreendimento=unique_key
+        )
         plt.close(figura)
         return
 
@@ -780,8 +798,25 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None):
     eixo_gantt.legend(handles=handles_legenda, loc='upper center', bbox_to_anchor=(1.1, 1), frameon=False, borderaxespad=0.1)
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
-    st.pyplot(figura)
+    
+# CORREÇÃO: Definir unique_key apropriadamente antes de usar
+    if empreendimento is not None:
+        unique_key = empreendimento
+    else:
+        # Se não há empreendimento específico, criar uma chave única
+        if not df.empty and 'Empreendimento' in df.columns:
+            unique_key = df['Empreendimento'].iloc[0] if len(df['Empreendimento'].unique()) == 1 else f"gantt_{int(time.time() * 1000)}"
+        else:
+            unique_key = f"gantt_{int(time.time() * 1000)}"
+
+    create_fullscreen_image_viewer(
+    figure=figura, 
+    empreendimento=unique_key
+
+    )
+
     plt.close(figura)
+
     
 #========================================================================================================
 
@@ -1169,27 +1204,27 @@ if df_data is not None and not df_data.empty:
                     tabela_final_lista.append(tabela_para_processar)
                 else:
                     # Agrupa por 'ordem_empreendimento' para manter a ordem correta
-                 for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
-                    # --- FIX: Add this condition to skip empty groups ---
-                    if not grupo.empty:
-                        empreendimento = grupo['Empreendimento'].iloc[0]
+                    for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
+                        # --- FIX: Add this condition to skip empty groups ---
+                        if not grupo.empty:
+                            empreendimento = grupo['Empreendimento'].iloc[0]
 
-                        percentual_medio = grupo['Percentual_Concluido'].mean()
+                            percentual_medio = grupo['Percentual_Concluido'].mean()
 
-                        cabecalho = pd.DataFrame([{
-                            'Hierarquia': f'📂 {empreendimento}',
-                            'Inicio_Prevista': grupo['Inicio_Prevista'].min(),
-                            'Termino_Prevista': grupo['Termino_Prevista'].max(),
-                            'Inicio_Real': grupo['Inicio_Real'].min(),
-                            'Termino_Real': grupo['Termino_Real'].max(),
-                            'Var. Term': grupo['Var. Term'].mean(),
-                            'Percentual_Concluido': percentual_medio
-                        }])
-                        tabela_final_lista.append(cabecalho)
+                            cabecalho = pd.DataFrame([{
+                                'Hierarquia': f'📂 {empreendimento}',
+                                'Inicio_Prevista': grupo['Inicio_Prevista'].min(),
+                                'Termino_Prevista': grupo['Termino_Prevista'].max(),
+                                'Inicio_Real': grupo['Inicio_Real'].min(),
+                                'Termino_Real': grupo['Termino_Real'].max(),
+                                'Var. Term': grupo['Var. Term'].mean(),
+                                'Percentual_Concluido': percentual_medio
+                            }])
+                            tabela_final_lista.append(cabecalho)
 
-                        grupo_formatado = grupo.copy()
-                        grupo_formatado['Hierarquia'] = ' &nbsp; &nbsp; ' + grupo_formatado['Etapa'].map(sigla_para_nome_completo)
-                        tabela_final_lista.append(grupo_formatado)
+                            grupo_formatado = grupo.copy()
+                            grupo_formatado['Hierarquia'] = ' &nbsp; &nbsp; ' + grupo_formatado['Etapa'].map(sigla_para_nome_completo)
+                            tabela_final_lista.append(grupo_formatado)
 
                 if not tabela_final_lista:
                     st.info("ℹ️ Nenhum dado para exibir na tabela detalhada com os filtros atuais.")
