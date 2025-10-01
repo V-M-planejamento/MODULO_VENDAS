@@ -1099,7 +1099,7 @@ if df_data is not None and not df_data.empty:
             st.sidebar.info("ℹ️ Todas as etapas estão 100% concluídas")
 
     # O código das abas (tabs) continua o mesmo, usando a variável 'df_final'
-    tab1, tab2 = st.tabs(["📈 Gráfico de Gantt – Previsto vs Real", "💾 Tabelão Horizontal"])
+    tab1, tab2 = st.tabs(["Gantt – Previsto vs Real", "Tabelão Horizontal"])
 
 
 #========================================================================================================
