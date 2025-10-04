@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,8 +9,10 @@ from matplotlib.patches import Patch, Rectangle
 import matplotlib.dates as mdates
 import matplotlib.gridspec as gridspec
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import time 
+import base64
+import io
 
 # --- Component and utility imports ---
 from dropdown_component import simple_multiselect_dropdown
@@ -18,13 +21,17 @@ from calculate_business_days import calculate_business_days
 from fullscreen_image_component import create_fullscreen_image_viewer
 
 # --- Bloco de Importação de Dados ---
-try:
-    from processa_venda_registro import tratar_e_retornar_dados_previstos
-    from processa_venda_smartsheet import main as processar_smartsheet_main
-except ImportError:
-    st.warning("Scripts de processamento não encontrados. O app usará dados de exemplo.")
-    tratar_e_retornar_dados_previstos = None
-    processar_smartsheet_main = None
+@st.cache_resource
+def load_data_processing_scripts():
+    try:
+        from processa_venda_registro import tratar_e_retornar_dados_previstos
+        from processa_venda_smartsheet import main as processar_smartsheet_main
+        return tratar_e_retornar_dados_previstos, processar_smartsheet_main
+    except ImportError:
+        st.warning("Scripts de processamento não encontrados. O app usará dados de exemplo.")
+        return None, None
+
+tratar_e_retornar_dados_previstos, processar_smartsheet_main = load_data_processing_scripts()
     
 # --- Configurações de Estilo ---
 class StyleConfig:
@@ -61,6 +68,7 @@ class StyleConfig:
         cls.OFFSET_VARIACAO_TERMINO = novo_offset
 
 # --- Funções Utilitárias ---
+@st.cache_data
 def abreviar_nome(nome):
     if pd.isna(nome):
         return nome
@@ -73,6 +81,7 @@ def abreviar_nome(nome):
     
     return nome
 
+@st.cache_data
 def converter_porcentagem(valor):
     if pd.isna(valor) or valor == '': return 0.0
     if isinstance(valor, str):
@@ -83,9 +92,11 @@ def converter_porcentagem(valor):
     except (ValueError, TypeError):
         return 0.0
 
+@st.cache_data
 def formatar_data(data):
     return data.strftime("%d/%m/%y") if pd.notna(data) else "N/D"
 
+@st.cache_data
 def calcular_dias_uteis(inicio, fim):
     if pd.notna(inicio) and pd.notna(fim):
         data_inicio = np.datetime64(inicio.date())
@@ -93,6 +104,7 @@ def calcular_dias_uteis(inicio, fim):
         return np.busday_count(data_inicio, data_fim) + 1
     return 0
 
+@st.cache_data
 def calcular_variacao_duracao(duracao_real, duracao_prevista):
     """
     Calcula a variação entre a duração real e a duração prevista em dias.
@@ -114,6 +126,7 @@ def calcular_variacao_duracao(duracao_real, duracao_prevista):
         # Sem dados suficientes - cinza
         return "VD: -", "#666666"
 
+@st.cache_data
 def calcular_variacao_termino(termino_real, termino_previsto):
     """
     Calcula a variação entre o término real e o término previsto.
@@ -136,6 +149,7 @@ def calcular_variacao_termino(termino_real, termino_previsto):
         # Sem dados suficientes - cinza
         return "VT: -", "#666666"
 
+@st.cache_data
 def calcular_porcentagem_correta(grupo):
     if '% concluído' not in grupo.columns:
         return 0.0
@@ -176,6 +190,7 @@ def padronizar_etapa(etapa_str):
     return 'UNKNOWN'
 
 # --- Funções de Filtragem e Ordenação ---
+@st.cache_data
 def filtrar_etapas_nao_concluidas(df):
     if df.empty or '% concluído' not in df.columns:
         return df
@@ -185,6 +200,7 @@ def filtrar_etapas_nao_concluidas(df):
     df_filtrado = df_copy[df_copy['% concluído'] < 100]
     return df_filtrado
 
+@st.cache_data
 def obter_data_meta_assinatura(df_original, empreendimento):
     df_meta = df_original[(df_original['Empreendimento'] == empreendimento) & (df_original['Etapa'] == 'M')]
     
@@ -202,6 +218,7 @@ def obter_data_meta_assinatura(df_original, empreendimento):
     else:
         return pd.Timestamp.max
 
+@st.cache_data
 def criar_ordenacao_empreendimentos(df_original):
     empreendimentos_meta = {}
     
@@ -216,6 +233,7 @@ def criar_ordenacao_empreendimentos(df_original):
     
     return empreendimentos_ordenados
 
+@st.cache_data
 def aplicar_ordenacao_final(df, empreendimentos_ordenados):
     if df.empty:
         return df
@@ -232,6 +250,7 @@ def aplicar_ordenacao_final(df, empreendimentos_ordenados):
     
     return df_ordenado.reset_index(drop=True)
 
+@st.cache_data
 def aplicar_regra_definicao_modulo(df_completo):
     """
     Aplica a regra de negócio para a etapa 'DEFINIÇÃO DO MÓDULO' (DM).
@@ -278,13 +297,15 @@ def aplicar_regra_definicao_modulo(df_completo):
 
 # --- Funções de Geração do Gráfico ---
 
+@st.cache_data(show_spinner=False)
 def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
     if df.empty:
         st.warning("Sem dados disponíveis para exibir o Gantt.")
         return
 
-    plt.rcParams['figure.dpi'] = 150
-    plt.rcParams['savefig.dpi'] = 150
+    # Configurações de DPI movidas para o savefig para maior controle
+    # plt.rcParams["figure.dpi"] = 150
+    # plt.rcParams["savefig.dpi"] = 150
 
     df_original_completo = df.copy()
 
@@ -321,28 +342,71 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
+    # Lista para armazenar todos os gráficos gerados para o ViewerJS
+    all_charts_for_viewer = []
+    current_chart_index = 0
+    chart_counter = 0
+
     # REGRA ESPECÍFICA: Quando há múltiplos empreendimentos e apenas uma etapa
     if num_empreendimentos > 1 and num_etapas == 1:
         # Para este caso especial, geramos apenas UM gráfico comparativo
-        gerar_gantt_comparativo(df, tipo_visualizacao, df_original_completo)
+        fig, unique_key = gerar_gantt_comparativo(df, tipo_visualizacao, df_original_completo)
+        if fig:
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+            img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            plt.close(fig)
+
     elif num_empreendimentos > 1 and num_etapas > 1:
         # Caso tradicional: múltiplos empreendimentos com múltiplas etapas
         for empreendimento in empreendimentos_ordenados:
             if empreendimento in df['Empreendimento'].unique():
                 df_filtrado = df[df['Empreendimento'] == empreendimento]
                 df_original_filtrado = df_original_completo[df_original_completo['Empreendimento'] == empreendimento]
-                gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado, empreendimento=empreendimento)
+                fig, unique_key = gerar_gantt_individual(df_filtrado, tipo_visualizacao, df_original=df_original_filtrado, empreendimento=empreendimento)
+                if fig:
+                    img_buffer = io.BytesIO()
+                    fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+                    img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+                    all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+                    plt.close(fig)
+
     else:
         # Caso único empreendimento (com uma ou múltiplas etapas)
-        gerar_gantt_individual(df, tipo_visualizacao, df_original=df_original_completo)
+        fig, unique_key = gerar_gantt_individual(df, tipo_visualizacao, df_original=df_original_completo)
+        if fig:
+            img_buffer = io.BytesIO()
+            fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
+            img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            plt.close(fig)
+
+    # Se houver gráficos para exibir, itere sobre eles para exibição e prepare o visualizador de tela cheia
+    if all_charts_for_viewer:
+        for idx, chart_data in enumerate(all_charts_for_viewer):
+
+            # Adicionar o botão de tela cheia para cada gráfico
+            create_fullscreen_image_viewer(
+                figure=None, # Não precisamos de uma figura matplotlib aqui, pois já exibimos a imagem
+                empreendimento=chart_data["id"], 
+                all_filtered_charts_data=all_charts_for_viewer,
+                current_chart_index=idx
+            )
+
+    # Certifique-se de que todas as figuras matplotlib criadas sejam fechadas para liberar memória
+    # plt.close("all") # all") # ") # ") # Removido pois as figuras já são fechadas individualmente
+
+
 
 def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     """
     Gera um gráfico Gantt comparativo para múltiplos empreendimentos com apenas uma etapa.
     Ordena os empreendimentos pela data de início e exibe em um único gráfico.
+    Retorna a figura e uma chave única para o gráfico.
     """
     if df.empty:
-        return
+        return None, None
 
     if df_original is None:
         df_original = df.copy()
@@ -366,7 +430,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     df.dropna(subset=['Posicao'], inplace=True)
     
     if df.empty:
-        return
+        return None, None
 
     # Configuração da figura
     num_linhas = len(rotulo_para_posicao)
@@ -407,11 +471,10 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
         eixo_tabela.text(0.04, y_pos + 0.05, f"{texto_prev:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
         eixo_tabela.text(0.04, y_pos + 0.28, f"{texto_real:<32}", va="center", ha="left", **StyleConfig.FONTE_DATAS)
 
-        # Indicador de porcentagem com cores
         percentual = linha['% concluído']
         termino_real = linha['Termino_Real']
         termino_previsto = linha['Termino_Prevista']
-        
+
     # --- BLOCO DE STATUS COM TRÊS CAIXAS ALINHADAS ---
 
         # 1. Lógica de cores CORRIGIDA
@@ -425,7 +488,6 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
                 elif termino_real > termino_previsto:
                     cor_status = {'face': '#f8d7da', 'text': '#721c24', 'edge': '#f5c6cb'} # Vermelho: Concluído com Atraso
 
-        # CORREÇÃO PRINCIPAL ESTÁ AQUI
         elif percentual < 100:
             if pd.notna(termino_real) and (termino_real < hoje):
                 cor_status = {'face': '#fff3cd', 'text': '#856404', 'edge': "#f9e29c"} # Amarelo: Em Andamento, Atrasado
@@ -474,14 +536,12 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
 
         # --- FIM DO BLOCO DE STATUS ---
 
-    # Desenho das barras do Gantt
     datas_relevantes = []
     for _, linha in dados_consolidados.iterrows():
         y_pos = linha['Posicao']
         ALTURA_BARRA = StyleConfig.ALTURA_BARRA_GANTT
         ESPACAMENTO = 0 if tipo_visualizacao != "Ambos" else StyleConfig.ALTURA_BARRA_GANTT * 0.5
 
-        # Barra prevista
         if tipo_visualizacao in ["Ambos", "Previsto"] and pd.notna(linha['Inicio_Prevista']) and pd.notna(linha['Termino_Prevista']):
             duracao = (linha['Termino_Prevista'] - linha['Inicio_Prevista']).days + 1
             eixo_gantt.barh(y=y_pos - ESPACAMENTO, width=duracao, left=linha['Inicio_Prevista'],
@@ -489,7 +549,6 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
                             antialiased=False)
             datas_relevantes.extend([linha['Inicio_Prevista'], linha['Termino_Prevista']])
 
-        # Barra real
         if tipo_visualizacao in ["Ambos", "Real"] and pd.notna(linha['Inicio_Real']):
             termino_real = linha['Termino_Real'] if pd.notna(linha['Termino_Real']) else hoje
             duracao = (termino_real - linha['Inicio_Real']).days + 1
@@ -544,21 +603,18 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     
-# CORREÇÃO: Definir unique_key apropriadamente
-    if empreendimento is not None:
-        unique_key = empreendimento
-    else:
-        # Se não há empreendimento específico, criar uma chave única
-        unique_key = f"gantt_{int(time.time() * 1000)}"
-
-    create_fullscreen_image_viewer(
-        figure=figura, 
-        empreendimento=unique_key
-    )
+    # CORREÇÃO: Definir unique_key apropriadamente
+    unique_key = f"gantt_individual_{empreendimento}_{int(time.time() * 1000)}" if empreendimento else f"gantt_individual_{int(time.time() * 1000)}"
+    
+    return figura, unique_key
 
 def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empreendimento: Optional[str] = None):
+    """
+    Gera um gráfico Gantt individual para um empreendimento ou para múltiplos empreendimentos com múltiplas etapas.
+    Retorna a figura e uma chave única para o gráfico.
+    """
     if df.empty:
-        return
+        return None, None
 
     if df_original is None:
         df_original = df.copy()
@@ -581,19 +637,19 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
     else:
         # Para o caso tradicional, a ordem é baseada em como os dados chegam
         empreendimentos_unicos = df['Empreendimento'].unique()
-        for empreendimento in empreendimentos_unicos:
-            etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento]['Etapa'].unique()
+        for emp_idx, empreendimento_atual_loop in enumerate(empreendimentos_unicos):
+            etapas_do_empreendimento = df[df['Empreendimento'] == empreendimento_atual_loop]['Etapa'].unique()
             for etapa in etapas_do_empreendimento:
-                rotulo = f'{empreendimento}||{etapa}'
+                rotulo = f'{empreendimento_atual_loop}||{etapa}'
                 rotulo_para_posicao[rotulo] = posicao
                 posicao += 1
-            if len(empreendimentos_unicos) > 1:
-                    posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS / 2
+            if emp_idx < len(empreendimentos_unicos) - 1: # Adiciona espaçamento entre empreendimentos, exceto o último
+                    posicao += StyleConfig.ESPACO_ENTRE_EMPREENDIMENTOS
         df['Posicao'] = (df['Empreendimento'] + '||' + df['Etapa']).map(rotulo_para_posicao)
 
     df.dropna(subset=['Posicao'], inplace=True)
     if df.empty:
-        return
+        return None, None
 
     # --- Configuração da Figura ---
     num_linhas = len(rotulo_para_posicao)
@@ -740,16 +796,10 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
             # --- FIM DA MODIFICAÇÃO ---
             
     if not rotulo_para_posicao:
-        # CORREÇÃO SIMPLIFICADA
-        unique_key = f"empty_{int(time.time() * 1000)}"
-        create_fullscreen_image_viewer(
-            figura, 
-            show_regular=True, 
-            button_text=f"🔍 Visualizar {empreendimento.replace('CONDOMINIO ', '')} em Tela Cheia",
-            empreendimento=unique_key
-        )
+        # Se não há posições, significa que não há dados para plotar.
+        # Retorna None para a figura e a chave.
         plt.close(figura)
-        return
+        return None, None
 
     max_pos = max(rotulo_para_posicao.values())
     eixo_gantt.set_ylim(max_pos + 1, -1)
@@ -772,8 +822,8 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
     # --- FIM DA MODIFICAÇÃO ---
 
     if num_empreendimentos == 1 and num_etapas > 1:
-        empreendimento = df["Empreendimento"].unique()[0]
-        df_assinatura = df[(df["Empreendimento"] == empreendimento) & (df["Etapa"] == "M")]
+        empreendimento_key = df["Empreendimento"].unique()[0]
+        df_assinatura = df[(df["Empreendimento"] == empreendimento_key) & (df["Etapa"] == "M")]
         if not df_assinatura.empty:
             data_meta, tipo_meta = (None, "")
             if pd.notna(df_assinatura["Inicio_Prevista"].iloc[0]):
@@ -799,7 +849,7 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     
-# CORREÇÃO: Definir unique_key apropriadamente antes de usar
+    # CORREÇÃO: Definir unique_key apropriadamente antes de usar
     if empreendimento is not None:
         unique_key = empreendimento
     else:
@@ -809,15 +859,8 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
         else:
             unique_key = f"gantt_{int(time.time() * 1000)}"
 
-    create_fullscreen_image_viewer(
-    figure=figura, 
-    empreendimento=unique_key
-
-    )
-
-    plt.close(figura)
-
-    
+    return figura, unique_key
+  
 #========================================================================================================
 
 # --- Lógica Principal do App Streamlit (sem alterações) ---
@@ -1066,17 +1109,13 @@ if df_data is not None and not df_data.empty:
 
     df_processamento = df_filtered.copy()
 
-    # Passo 2: Centralizar o cálculo de porcentagem AQUI (removido de 'gerar_gantt')
     if '% concluído' in df_processamento.columns:
-        df_porcentagem = df_processamento.groupby(['Empreendimento', 'Etapa']).apply(calcular_porcentagem_correta).reset_index(name='%_corrigido')
-        df_processamento = pd.merge(df_processamento, df_porcentagem, on=['Empreendimento', 'Etapa'], how='left')
-        df_processamento['% concluído'] = df_processamento['%_corrigido'].fillna(0)
-        df_processamento.drop('%_corrigido', axis=1, inplace=True)
+        df_processamento['% concluído'] = df_processamento.groupby(['Empreendimento', 'Etapa'])['% concluído'].transform(
+            lambda series: calcular_porcentagem_correta(series.to_frame('% concluído'))
+        ).fillna(0)
     else:
         df_processamento['% concluído'] = 0.0
 
-    # Passo 3: Aplicar a sua regra de negócio APÓS o cálculo de porcentagem
-    # Este dataframe agora é a fonte de dados final e correta.
     df_com_regra = aplicar_regra_definicao_modulo(df_processamento)
 
     # Passo 4: Aplicar o filtro de etapa sobre os dados já tratados
@@ -1118,20 +1157,17 @@ if df_data is not None and not df_data.empty:
         
         # Âncora para o início
         st.markdown('<div id="inicio"></div>', unsafe_allow_html=True)
-        # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
-
+        
         st.subheader("Gantt Comparativo")
-        # Altere df_filtered para df_final
         if df_final.empty:
             st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
         else:
             gerar_gantt(df_final.copy(), tipo_visualizacao, filtrar_nao_concluidas)
 
-        # --- INÍCIO DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
         # Âncora para a tabela
         st.markdown('<div id="visao-detalhada"></div>', unsafe_allow_html=True)
         # --- FIM DA IMPLEMENTAÇÃO DO MENU FLUTUANTE ---
-        
+
         st.subheader("Visão Detalhada por Empreendimento")
         # Altere df_filtered para df_final
         if df_final.empty:
