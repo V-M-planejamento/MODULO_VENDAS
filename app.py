@@ -313,14 +313,6 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
         df['Empreendimento'] = df['Empreendimento'].apply(abreviar_nome)
         df_original_completo['Empreendimento'] = df_original_completo['Empreendimento'].apply(abreviar_nome)
 
-    if '% concluído' in df.columns:
-        df_porcentagem = df.groupby(['Empreendimento', 'Etapa']).apply(calcular_porcentagem_correta).reset_index(name='%_corrigido')
-        df = pd.merge(df, df_porcentagem, on=['Empreendimento', 'Etapa'], how='left')
-        df['% concluído'] = df['%_corrigido'].fillna(0)
-        df.drop('%_corrigido', axis=1, inplace=True)
-    else:
-        df['% concluído'] = 0.0
-
     df = aplicar_regra_definicao_modulo(df)        
 
     for col in ['Inicio_Prevista', 'Termino_Prevista', 'Inicio_Real', 'Termino_Real']:
