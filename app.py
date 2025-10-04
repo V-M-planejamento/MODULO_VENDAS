@@ -1055,7 +1055,7 @@ if df_data is not None and not df_data.empty:
             emp_options = []
             
         selected_emp = simple_multiselect_dropdown(
-            label="Filtrar por Empreendimento",
+            label="Filtrar por EMP",
             options=emp_options,
             key="empreendimento_filter",
             default_selected=emp_options
