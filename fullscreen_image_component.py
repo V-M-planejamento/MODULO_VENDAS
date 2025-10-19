@@ -203,34 +203,34 @@ def create_fullscreen_image_viewer(
                         customHeaderStyle.id = customHeaderStyleId;
                         customHeaderStyle.innerHTML = `
                             /* // #############################################
-                            // ## INÍCIO DA ALTERAÇÃO SOLICITADA
+                            // ## INÍCIO DA ALTERAÇÃO (REDUÇÃO ADICIONAL)
                             // ############################################# 
                             */
                             .viewer-header-custom-injected {{
                                 position: absolute; 
-                                top: 15px; /* <-- MUDADO (antes 50px) */
-                                left: 15px; /* <-- MUDADO (antes 50%) */
-                                /* transform: translateX(-50%); */ /* <-- REMOVIDO */
+                                top: 15px; 
+                                left: 15px; 
+                                /* transform: translateX(-50%); */ 
                                 
                                 background-color: rgba(0, 0, 0, 0.7); color: white;
-                                padding: 5px 8px; /* <-- MUDADO (antes 8px 12px) */
+                                padding: 3px 5px; /* <-- REDUZIDO (antes 5px 8px) */
                                 box-sizing: border-box;
                                 display: flex; justify-content: flex-start; align-items: center;
                                 z-index: 99998; 
-                                border-radius: 6px; /* <-- MUDADO (antes 8px) */
+                                border-radius: 4px; /* <-- REDUZIDO (antes 6px) */
                                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                                font-size: 12px; /* <-- MUDADO (antes 14px) */
+                                font-size: 10px; /* <-- REDUZIDO (antes 12px) */
                             }}
                             .viewer-header-custom-injected select {{
-                                margin-left: 5px; /* <-- MUDADO (antes 10px) */
-                                padding: 3px 5px; /* <-- MUDADO (antes 5px) */
-                                border-radius: 4px; /* <-- MUDADO (antes 5px) */
+                                margin-left: 4px; /* <-- REDUZIDO (antes 5px) */
+                                padding: 2px 3px; /* <-- REDUZIDO (antes 3px 5px) */
+                                border-radius: 3px; /* <-- REDUZIDO (antes 4px) */
                                 border: 1px solid #ccc;
                                 background-color: #333; color: white;
-                                font-size: 12px; /* <-- ADICIONADO */
+                                font-size: 10px; /* <-- REDUZIDO (antes 12px) */
                             }}
                             /* // #############################################
-                            // ## FIM DA ALTERAÇÃO SOLICITADA
+                            // ## FIM DA ALTERAÇÃO
                             // ############################################# 
                             */
                         `;
