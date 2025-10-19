@@ -125,7 +125,7 @@ def create_fullscreen_image_viewer(
                 </div>
                 
                 <div class="viewer-header-custom">
-                    <label for="ugb-select">Filtrar UGB:</label>
+                    <label for="ugb-select"></label>
                     <select id="ugb-select" class="ugb-select-initial">
                         <option value="all">Todas as UGBs</option>
                     </select>
@@ -202,21 +202,37 @@ def create_fullscreen_image_viewer(
                         const customHeaderStyle = parentDoc.createElement("style");
                         customHeaderStyle.id = customHeaderStyleId;
                         customHeaderStyle.innerHTML = `
+                            /* // #############################################
+                            // ## INÍCIO DA ALTERAÇÃO SOLICITADA
+                            // ############################################# 
+                            */
                             .viewer-header-custom-injected {{
-                                position: absolute; top: 50px; left: 50%;
-                                transform: translateX(-50%);
+                                position: absolute; 
+                                top: 15px; /* <-- MUDADO (antes 50px) */
+                                left: 15px; /* <-- MUDADO (antes 50%) */
+                                /* transform: translateX(-50%); */ /* <-- REMOVIDO */
+                                
                                 background-color: rgba(0, 0, 0, 0.7); color: white;
-                                padding: 8px 12px; box-sizing: border-box;
+                                padding: 5px 8px; /* <-- MUDADO (antes 8px 12px) */
+                                box-sizing: border-box;
                                 display: flex; justify-content: flex-start; align-items: center;
-                                z-index: 99998; border-radius: 8px;
+                                z-index: 99998; 
+                                border-radius: 6px; /* <-- MUDADO (antes 8px) */
                                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                                font-size: 14px;
+                                font-size: 12px; /* <-- MUDADO (antes 14px) */
                             }}
                             .viewer-header-custom-injected select {{
-                                margin-left: 10px; padding: 5px;
-                                border-radius: 5px; border: 1px solid #ccc;
+                                margin-left: 5px; /* <-- MUDADO (antes 10px) */
+                                padding: 3px 5px; /* <-- MUDADO (antes 5px) */
+                                border-radius: 4px; /* <-- MUDADO (antes 5px) */
+                                border: 1px solid #ccc;
                                 background-color: #333; color: white;
+                                font-size: 12px; /* <-- ADICIONADO */
                             }}
+                            /* // #############################################
+                            // ## FIM DA ALTERAÇÃO SOLICITADA
+                            // ############################################# 
+                            */
                         `;
                         parentDoc.head.appendChild(customHeaderStyle);
                     }}
