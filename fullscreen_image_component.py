@@ -175,7 +175,6 @@ def create_fullscreen_image_viewer(
                             margin: 0 auto !important; 
                         }}
                         
-                        /* CORREÇÃO PRINCIPAL PARA ALINHAMENTO DOS BOTÕES */
                         .viewer-toolbar > ul > li {{ 
                             background-color: transparent !important; 
                             width: 32px !important; 
@@ -192,7 +191,6 @@ def create_fullscreen_image_viewer(
                             line-height: 1 !important;
                         }}
 
-                        /* Estilo específico para botões com texto (play, etc.) */
                         .viewer-toolbar > ul > li > button {{
                             width: 100% !important;
                             height: 100% !important;
@@ -213,13 +211,12 @@ def create_fullscreen_image_viewer(
                             background-color: rgba(255, 255, 255, 0.2) !important; 
                         }}
 
-                        /* Estilo uniforme para todos os SVGs dentro da barra de ferramentas */
                         .viewer-toolbar svg {{
-                            width: 18px !important; /* Tamanho fixo para consistência */
-                            height: 18px !important; /* Tamanho fixo para consistência */
+                            width: 18px !important; 
+                            height: 18px !important; 
                             fill: white !important;
                             display: block !important;
-                            object-fit: contain; /* Garantir que o SVG se ajuste sem distorção */
+                            object-fit: contain; 
                         }}
                     `;
                     parentDoc.head.appendChild(customStyle);
@@ -265,7 +262,6 @@ def create_fullscreen_image_viewer(
 
                             const toolbar = this.viewer.toolbar;
 
-                            // --- INJEÇÃO DE ÍCONES SVG PARA CONSISTÊNCIA ---
                             const iconMap = {{
                                 'viewer-navbar': '<svg viewBox="0 0 24 24"><path d="M21,2H3A1,1,0,0,0,2,3V21a1,1,0,0,0,1,1H21a1,1,0,0,0,1-1V3A1,1,0,0,0,21,2ZM9,11H5V7H9Zm6,0H11V7h4Zm6,0H17V7h4Zm0,6H17V13h4Zm-6,0H11V13h4ZM9,17H5V13H9Z"/></svg>',
                                 'viewer-download': '<svg viewBox="0 0 24 24"><path d="M12,16L6,10H9V4h6V10h3M18,20H6V18H18Z"/></svg>',
@@ -299,35 +295,78 @@ def create_fullscreen_image_viewer(
                     isNavbarVisible = !isNavbarVisible;
                     createViewer(isNavbarVisible);
                 }}
+
+                // ########## FUNÇÃO NOVA ADICIONADA AQUI ##########
+                /**
+                 * Exibe uma mensagem "toast" (pop-up) no centro da tela.
+                 */
+                function showToast(message, duration = 2000) {{
+                    let toast = parentDoc.getElementById('viewer-toast');
+                    
+                    // Cria o elemento toast se ele não existir
+                    if (!toast) {{
+                        toast = parentDoc.createElement('div');
+                        toast.id = 'viewer-toast';
+                        toast.style.cssText = `
+                            visibility: hidden;
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background-color: rgba(0, 0, 0, 0.85);
+                            color: white;
+                            padding: 12px 20px;
+                            border-radius: 8px;
+                            z-index: 100000; /* Acima do z-index do viewer */
+                            opacity: 0;
+                            transition: opacity 0.3s ease, visibility 0.3s ease;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                            font-size: 14px;
+                            font-weight: 500;
+                            line-height: 1.6;
+                        `;
+                        parentDoc.body.appendChild(toast);
+                    }}
+
+                    // Define a mensagem e exibe o toast
+                    toast.textContent = message;
+                    toast.style.visibility = 'visible';
+                    toast.style.opacity = '1';
+
+                    // Esconde o toast após a duração
+                    setTimeout(() => {{
+                        toast.style.opacity = '0';
+                        toast.style.visibility = 'hidden';
+                    }}, duration);
+                }}
+                // #################################################
                 
                 async function copyImageToClipboard() {{
                     if (!viewerInstance) return;
                     const viewer = viewerInstance;
                     const image = viewer.image;
-                    const buttonElement = viewer.toolbar.querySelector('.viewer-copy');
-                    const originalTitle = buttonElement.getAttribute('data-original-title');
-
-                    function setTooltip(message, duration = 2000) {{
-                        buttonElement.setAttribute('data-original-title', message);
-                        viewer.tooltip();
-                        if (duration > 0) setTimeout(() => {{
-                            buttonElement.setAttribute('data-original-title', originalTitle);
-                            viewer.tooltip();
-                        }}, duration);
-                    }}
+                    
+                    // Removemos a função setTooltip que estava aqui dentro,
+                    // pois agora usaremos a showToast.
 
                     if (!window.parent.navigator.clipboard || !window.parent.isSecureContext) {{
-                        setTooltip("Cópia indisponível (HTTPS necessário)", 3000); return;
+                        // ########## MUDANÇA ##########
+                        showToast("Cópia indisponível (HTTPS necessário)", 3000); 
+                        return;
                     }}
                     try {{
                         const response = await fetch(image.src);
                         const blob = await response.blob();
                         const clipboardItem = new window.parent.ClipboardItem({{ [blob.type]: blob }});
                         await window.parent.navigator.clipboard.write([clipboardItem]);
-                        setTooltip("Copiado!");
+                        
+                        // ########## MUDANÇA PRINCIPAL ##########
+                        showToast("Gráfico copiado!"); 
+                        
                     }} catch (err) {{
                         console.error('Falha ao copiar:', err);
-                        setTooltip("Erro ao copiar", 3000);
+                        // ########## MUDANÇA ##########
+                        showToast("Erro ao copiar", 3000);
                     }}
                 }}
 
@@ -370,4 +409,3 @@ def create_fullscreen_image_viewer(
 
     # --- Etapa 4: Renderização no Streamlit ---
     components.html(html_content, height=520)
-
