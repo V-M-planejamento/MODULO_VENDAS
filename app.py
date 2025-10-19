@@ -330,6 +330,12 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
         st.warning("Sem dados disponíveis para exibir o Gantt após a filtragem.")
         return
 
+    # --- INÍCIO DA MODIFICAÇÃO ---
+    # 1. Criar um mapa de Empreendimento -> UGB
+    # Isso permite "etiquetar" cada gráfico com sua UGB.
+    df_ugb_map = df[['Empreendimento', 'UGB']].drop_duplicates().set_index('Empreendimento')['UGB'].to_dict()
+    # --- FIM DA MODIFICAÇÃO ---
+
     num_empreendimentos = df['Empreendimento'].nunique()
     num_etapas = df['Etapa'].nunique()
 
@@ -346,7 +352,21 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
             img_buffer = io.BytesIO()
             fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
             img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
-            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            
+            # --- INÍCIO DA MODIFICAÇÃO ---
+            # 2. Etiquetar o gráfico comparativo
+            # Se o gráfico tiver dados de mais de uma UGB, 
+            # ele só aparecerá no filtro "all" (Todas) do modal.
+            ugbs_no_grafico = df['UGB'].unique()
+            ugb_do_grafico = ugbs_no_grafico[0] if len(ugbs_no_grafico) == 1 else 'all'
+            
+            all_charts_for_viewer.append({
+                "id": unique_key, 
+                "src": f"data:image/png;base64,{img_base64}",
+                "ugb": ugb_do_grafico  # <-- A CHAVE "ugb" FOI ADICIONADA
+            })
+            # --- FIM DA MODIFICAÇÃO ---
+            
             plt.close(fig)
 
     elif num_empreendimentos > 1 and num_etapas > 1:
@@ -360,7 +380,19 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
                     img_buffer = io.BytesIO()
                     fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
                     img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
-                    all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+                    
+                    # --- INÍCIO DA MODIFICAÇÃO ---
+                    # 3. Etiquetar cada gráfico individual
+                    # Obter a UGB do mapa que criamos
+                    ugb_do_grafico = df_ugb_map.get(empreendimento, 'all') # 'all' como fallback
+                    
+                    all_charts_for_viewer.append({
+                        "id": unique_key, 
+                        "src": f"data:image/png;base64,{img_base64}",
+                        "ugb": ugb_do_grafico  # <-- A CHAVE "ugb" FOI ADICIONADA
+                    })
+                    # --- FIM DA MODIFICAÇÃO ---
+                    
                     plt.close(fig)
 
     else:
@@ -370,19 +402,33 @@ def gerar_gantt(df, tipo_visualizacao="Ambos", filtrar_nao_concluidas=False):
             img_buffer = io.BytesIO()
             fig.savefig(img_buffer, format="png", dpi=300, bbox_inches="tight", facecolor="white")
             img_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
-            all_charts_for_viewer.append({"id": unique_key, "src": f"data:image/png;base64,{img_base64}"})
+            
+            # --- INÍCIO DA MODIFICAÇÃO ---
+            # 4. Etiquetar o gráfico único
+            ugbs_no_grafico = df['UGB'].unique()
+            ugb_do_grafico = ugbs_no_grafico[0] if len(ugbs_no_grafico) == 1 else 'all'
+
+            all_charts_for_viewer.append({
+                "id": unique_key, 
+                "src": f"data:image/png;base64,{img_base64}",
+                "ugb": ugb_do_grafico  # <-- A CHAVE "ugb" FOI ADICIONADA
+            })
+            # --- FIM DA MODIFICAÇÃO ---
+            
             plt.close(fig)
 
     # Se houver gráficos para exibir, itere sobre eles para exibição e prepare o visualizador de tela cheia
     if all_charts_for_viewer:
+
         for idx, chart_data in enumerate(all_charts_for_viewer):
 
             # Adicionar o botão de tela cheia para cada gráfico
             create_fullscreen_image_viewer(
                 figure=None, # Não precisamos de uma figura matplotlib aqui, pois já exibimos a imagem
                 empreendimento=chart_data["id"], 
-                all_filtered_charts_data=all_charts_for_viewer,
-                current_chart_index=idx
+                all_filtered_charts_data=all_charts_for_viewer, # Esta lista agora contém a chave "ugb"
+                current_chart_index=idx,
+                ugb_filter_options=ugb_options
             )
 
     # Certifique-se de que todas as figuras matplotlib criadas sejam fechadas para liberar memória
@@ -595,7 +641,7 @@ def gerar_gantt_comparativo(df, tipo_visualizacao="Ambos", df_original=None):
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     
     # CORREÇÃO: Definir unique_key apropriadamente
-    unique_key = f"gantt_individual_{empreendimento}_{int(time.time() * 1000)}" if empreendimento else f"gantt_individual_{int(time.time() * 1000)}"
+    unique_key = f"gantt_comparativo_{int(time.time() * 1000)}" # Chave única para o gráfico comparativo
     
     return figura, unique_key
 
@@ -855,7 +901,10 @@ def gerar_gantt_individual(df, tipo_visualizacao="Ambos", df_original=None, empr
 #========================================================================================================
 
 # --- Lógica Principal do App Streamlit (sem alterações) ---
-st.set_page_config(layout="wide", page_title="Dashboard de Gantt Comparativo")
+st.set_page_config(layout="wide")
+
+if 'ugb_filter_fullscreen' not in st.session_state:
+    st.session_state['ugb_filter_fullscreen'] = 'all' # 'all' ou o nome da UGB selecionada
 
 @st.cache_data
 def load_data():
@@ -1021,7 +1070,12 @@ def filter_dataframe(df, ugb_filter, emp_filter):
 with st.spinner('Carregando e processando dados...'):
     df_data = load_data()
 
+# Inicializa o estado da sessão para o filtro UGB da tela cheia
+if "ugb_filter_fullscreen" not in st.session_state:
+    st.session_state["ugb_filter_fullscreen"] = "all"
+
 if df_data is not None and not df_data.empty:
+    ugb_options = get_unique_values(df_data, "UGB") # Definindo ugb_options aqui, antes de todos os filtros
     # Logo no sidebar
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)  # Espaço no topo
@@ -1036,7 +1090,7 @@ if df_data is not None and not df_data.empty:
         st.header("Filtros")
 
         # 1️⃣ Filtro UGB (Componente personalizado)
-        ugb_options = get_unique_values(df_data, "UGB")
+
         selected_ugb = simple_multiselect_dropdown(
             label="Filtrar por UGB",
             options=ugb_options,
@@ -1064,6 +1118,11 @@ if df_data is not None and not df_data.empty:
         # 3️⃣ Filtro Etapa
         # Usar função cacheada para filtragem
         df_filtered = filter_dataframe(df_data, selected_ugb, selected_emp)
+
+        # Captura o valor do filtro UGB da tela cheia, se disponível
+        selected_ugb_fullscreen = st.session_state.get("ugb_filter_fullscreen", None)
+        if selected_ugb_fullscreen and selected_ugb_fullscreen != "all":
+            df_filtered = df_filtered[df_filtered["UGB"] == selected_ugb_fullscreen]
         
         if not df_filtered.empty:
             etapas_disponiveis = get_unique_values(df_filtered, "Etapa")
