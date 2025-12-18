@@ -996,7 +996,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
                     .month-header {{ height: 30px; display: flex; align-items: center; }}
                     .month-cell {{ width: 60px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
-                    .chart-body {{ position: relative; min-height: 400px; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
+                    .chart-body {{ position: relative; min-height: auto; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
                     .gantt-row {{ position: relative; height: 30px; border-bottom: 1px solid #eff2f5; background-color: white; }}
                     .gantt-bar {{ position: absolute; height: 14px; top: 8px; border-radius: 3px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; padding: 0 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
                     .gantt-bar-overlap {{ position: absolute; height: 14px; top: 8px; background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.25) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.25) 75%, transparent 75%, transparent); background-size: 8px 8px; z-index: 9; pointer-events: none; border-radius: 3px; }}
@@ -1931,7 +1931,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             const dividerF = document.createElement('div');
                             dividerF.className = 'month-divider fortnight';
                             dividerF.style.left = `${{leftF}}px`;
-                            dividerF.style.borderLeft = '1px dashed #e0e0e0'; // Dashed line for fortnight
+                            dividerF.style.borderLeft = '1px dotted rgba(0,0,0,0.1)'; // Dotted line for fortnight
                             chartContainer.appendChild(dividerF);
 
                             currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
@@ -2615,7 +2615,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
                 .month-header {{ height: 30px; display: flex; align-items: center; }}
                 .month-cell {{ width: 60px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
-                .chart-body {{ position: relative; min-height: 400px; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
+                .chart-body {{ position: relative; min-height: auto; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
                 .gantt-row {{ position: relative; height: 30px; border-bottom: 1px solid #eff2f5; background-color: white; }}
                 .gantt-bar {{ position: absolute; height: 14px; top: 8px; border-radius: 3px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; padding: 0 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
                 .gantt-bar-overlap {{ position: absolute; height: 14px; top: 8px; background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.25) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.25) 75%, transparent 75%, transparent); background-size: 8px 8px; z-index: 9; pointer-events: none; border-radius: 3px; }}
@@ -3278,7 +3278,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         const dividerF = document.createElement('div');
                         dividerF.className = 'month-divider fortnight';
                         dividerF.style.left = leftF + 'px';
-                        dividerF.style.borderLeft = '1px dashed #e0e0e0'; // Dashed line for fortnight
+                        dividerF.style.borderLeft = '1px dotted rgba(0,0,0,0.1)'; // Dotted line for fortnight
                         chartContainer.appendChild(dividerF);
 
                         currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
