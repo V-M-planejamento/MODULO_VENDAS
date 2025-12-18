@@ -4022,7 +4022,7 @@ with st.spinner("Carregando e processando dados..."):
                     if usar_layout_horizontal:
                         colunas_rename['Empreendimento'] = 'Empreendimento (Abrev.)'
                         colunas_rename['Etapa'] = 'Etapa'
-                        colunas_para_exibir = ['Empreendimento', 'Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
+                        colunas_para_exibir = ['Empreendimento (Abrev.)', 'Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
                     else:
                         colunas_rename['Hierarquia'] = 'Empreendimento / Etapa'
                         colunas_para_exibir = ['Empreendimento / Etapa', '% Concluído', 'Início Prev.', 'Término Prev.', 'Início Real', 'Término Real', 'Var. Term']
