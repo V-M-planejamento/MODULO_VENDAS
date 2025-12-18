@@ -1269,7 +1269,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     const initialTipoVisualizacao = '{tipo_visualizacao}';
                     let tipoVisualizacao = '{tipo_visualizacao}';
-                    const PIXELS_PER_MONTH = 30;
+                    const PIXELS_PER_MONTH = 60;
 
                     // --- ESTRUTURA DE SUBETAPAS ---
 
@@ -1658,7 +1658,13 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                                 monthsInCurrentYear = 0;
                             }}
                             const monthNumber = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
-                            monthHtml += `<div class="month-cell">${{monthNumber}}</div>`;
+                            monthHtml += `<div class="month-cell" style="display:flex; flex-direction:column; justify-content:center; align-items:center; line-height:1;">
+                                <div style="font-size:9px; font-weight:bold;">${{monthNumber}}</div>
+                                <div style="display:flex; width:100%; border-top:1px solid rgba(255,255,255,0.2);">
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc;">1Q</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; color:#ccc;">2Q</div>
+                                </div>
+                            </div>`;
                             monthsInCurrentYear++;
                             currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                             totalMonths++;
@@ -1917,6 +1923,17 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             if (currentDate.getUTCMonth() === 0) divider.classList.add('first');
                             divider.style.left = `${{left}}px`; 
                             chartContainer.appendChild(divider);
+
+                            // Fortnight divider (approx 15 days)
+                            const fortnightDate = new Date(currentDate);
+                            fortnightDate.setUTCDate(15);
+                            const leftF = getPosition(fortnightDate);
+                            const dividerF = document.createElement('div');
+                            dividerF.className = 'month-divider fortnight';
+                            dividerF.style.left = `${{leftF}}px`;
+                            dividerF.style.borderLeft = '1px dashed #e0e0e0'; // Dashed line for fortnight
+                            chartContainer.appendChild(dividerF);
+
                             currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                             totalMonths++;
                         }}
