@@ -3280,10 +3280,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                             const leftW = left + (i * 30);
                             const dividerW = document.createElement('div');
                             dividerW.className = 'month-divider week';
-                            dividerW.style.left = `${leftW}px`; // Single brace allowed in Consolidated if valid JS constant string math? No, left is JS var.
-                            // In Consolidated (line 3278), "divider.style.left = left + 'px'".
-                            // Here I can use "left + (i * 30) + 'px'". Safe.
-                            dividerW.style.left = (left + (i * 30)) + 'px';
+                            dividerW.style.left = (leftW) + 'px';
                             dividerW.style.borderLeft = '1px solid #eff2f5';
                             chartContainer.appendChild(dividerW);
                         }}
