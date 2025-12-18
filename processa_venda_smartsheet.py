@@ -2,6 +2,7 @@ import pandas as pd
 import smartsheet
 import os
 from dotenv import load_dotenv
+import streamlit as st
 import sys
 from datetime import datetime
 
@@ -12,22 +13,22 @@ OUTPUT_CSV = "modulos_venda_tratados.csv"
 def carregar_configuracao():
     """Carrega as configurações e verifica o ambiente"""
     try:
-        # Verifica se o arquivo .env existe
-        if not os.path.exists('.env'):
-            raise FileNotFoundError("Arquivo .env não encontrado")
+        # Tenta pegar do st.secrets primeiro
+        if hasattr(st, "secrets") and "SMARTSHEET_ACCESS_TOKEN" in st.secrets:
+            return st.secrets["SMARTSHEET_ACCESS_TOKEN"]
         
+        # Fallback para variável de ambiente/arquivo .env
         load_dotenv()
         token = os.getenv("SMARTSHEET_ACCESS_TOKEN")
         
         if not token:
-            raise ValueError("Token não encontrado no arquivo .env")
+            print("Token não encontrado nem no st.secrets nem nas variáveis de ambiente.")
+            return None
         
         return token
     
     except Exception as e:
         print(f"\nERRO DE CONFIGURAÇÃO: {str(e)}")
-        print("\nPor favor, crie um arquivo .env na mesma pasta do script com:")
-        print("SMARTSHEET_ACCESS_TOKEN=seu_token_aqui\n")
         return None
 
 def setup_smartsheet_client(token):
@@ -187,31 +188,32 @@ def main():
     # 1. Carregar configurações
     token = carregar_configuracao()
     if not token:
-        sys.exit(1)
+        print("Aborting: No Token found.")
+        return # Substitui sys.exit(1)
 
     # 2. Configurar cliente Smartsheet
     client = setup_smartsheet_client(token)
     if not client:
-        sys.exit(1)
+        return # Substitui sys.exit(1)
 
     # 3. Obter ID da planilha
     sheet_id = get_sheet_id(client, SHEET_NAME)
     if not sheet_id:
-        sys.exit(1)
+        return # Substitui sys.exit(1)
 
     # 4. Obter dados
     raw_data = get_sheet_data(client, sheet_id)
     if raw_data.empty:
-        sys.exit(1)
+        return # Substitui sys.exit(1)
 
     # 5. Processar dados
     processed_data = process_data(raw_data)
     if processed_data.empty:
-        sys.exit(1)
+        return # Substitui sys.exit(1)
 
     # 6. Salvar resultados
     if not salvar_resultados(processed_data):
-        sys.exit(1)
+        return # Substitui sys.exit(1)
 
 if __name__ == "__main__":
     main()
