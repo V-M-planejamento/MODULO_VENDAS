@@ -993,7 +993,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .chart-container {{ position: relative; min-width: {total_meses_proj * 60}px; }}
                     .chart-header {{ background: linear-gradient(135deg, #4a5568, #2d3748); color: white; height: 60px; position: sticky; top: 0; z-index: 9; display: flex; flex-direction: column; }}
                     .year-header {{ height: 30px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }}
-                    .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
+                    .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; border-right: 1px solid rgba(255,255,255,0.3); box-sizing: border-box; }}
                     .month-header {{ height: 30px; display: flex; align-items: center; }}
                     .month-cell {{ width: 120px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
                     .chart-body {{ position: relative; min-height: auto; background-size: 120px 120px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
@@ -1926,18 +1926,15 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             divider.style.left = `${{left}}px`; 
                             chartContainer.appendChild(divider);
 
-                            // Week dividers (approx days 8, 15, 22)
-                            const weekOffsets = [8, 15, 22]; 
-                            weekOffsets.forEach(day => {{
-                                const wDate = new Date(currentDate);
-                                wDate.setUTCDate(day);
-                                const leftW = getPosition(wDate);
+                            // Week dividers (pixel based alignment)
+                            for (let i = 1; i <= 3; i++) {{
+                                const leftW = left + (i * 30);
                                 const dividerW = document.createElement('div');
                                 dividerW.className = 'month-divider week';
-                                dividerW.style.left = `${{leftW}}px`;
-                                dividerW.style.borderLeft = '1px dotted rgba(0,0,0,0.1)';
+                                dividerW.style.left = (leftW) + 'px';
+                                dividerW.style.borderLeft = '1px solid #eff2f5';
                                 chartContainer.appendChild(dividerW);
-                            }});
+                            }}
 
                             currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                             totalMonths++;
@@ -2617,7 +2614,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 .chart-container {{ position: relative; min-width: {total_meses_proj * 120}px; }}
                 .chart-header {{ background: linear-gradient(135deg, #4a5568, #2d3748); color: white; height: 60px; position: sticky; top: 0; z-index: 9; display: flex; flex-direction: column; }}
                 .year-header {{ height: 30px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }}
-                .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
+                .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; border-right: 1px solid rgba(255,255,255,0.3); box-sizing: border-box; }}
                 .month-header {{ height: 30px; display: flex; align-items: center; }}
                 .month-cell {{ width: 120px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
                 .chart-body {{ position: relative; min-height: auto; background-size: 120px 120px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
@@ -3278,18 +3275,18 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         divider.style.left = left + 'px'; 
                         chartContainer.appendChild(divider);
 
-                        // Week dividers (approx days 8, 15, 22)
-                        const weekOffsets = [8, 15, 22]; 
-                        weekOffsets.forEach(day => {{
-                            const wDate = new Date(currentDate);
-                            wDate.setUTCDate(day);
-                            const leftW = getPosition(wDate);
+                        // Week dividers (pixel based alignment)
+                        for (let i = 1; i <= 3; i++)   {{
+                            const leftW = left + (i * 30);
                             const dividerW = document.createElement('div');
                             dividerW.className = 'month-divider week';
-                            dividerW.style.left = `${{leftW}}px`;
-                            dividerW.style.borderLeft = '1px dotted rgba(0,0,0,0.1)';
+                            dividerW.style.left = `${leftW}px`; // Single brace allowed in Consolidated if valid JS constant string math? No, left is JS var.
+                            // In Consolidated (line 3278), "divider.style.left = left + 'px'".
+                            // Here I can use "left + (i * 30) + 'px'". Safe.
+                            dividerW.style.left = (left + (i * 30)) + 'px';
+                            dividerW.style.borderLeft = '1px solid #eff2f5';
                             chartContainer.appendChild(dividerW);
-                        }});
+                        }}
 
                         currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                         totalMonths++;
