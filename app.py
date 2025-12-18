@@ -995,8 +995,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .year-header {{ height: 30px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }}
                     .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
                     .month-header {{ height: 30px; display: flex; align-items: center; }}
-                    .month-cell {{ width: 60px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
-                    .chart-body {{ position: relative; min-height: auto; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
+                    .month-cell {{ width: 120px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
+                    .chart-body {{ position: relative; min-height: auto; background-size: 120px 120px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
                     .gantt-row {{ position: relative; height: 30px; border-bottom: 1px solid #eff2f5; background-color: white; }}
                     .gantt-bar {{ position: absolute; height: 14px; top: 8px; border-radius: 3px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; padding: 0 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
                     .gantt-bar-overlap {{ position: absolute; height: 14px; top: 8px; background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.25) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.25) 75%, transparent 75%, transparent); background-size: 8px 8px; z-index: 9; pointer-events: none; border-radius: 3px; }}
@@ -1269,7 +1269,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     const initialTipoVisualizacao = '{tipo_visualizacao}';
                     let tipoVisualizacao = '{tipo_visualizacao}';
-                    const PIXELS_PER_MONTH = 60;
+                    const PIXELS_PER_MONTH = 120;
 
                     // --- ESTRUTURA DE SUBETAPAS ---
 
@@ -1659,10 +1659,12 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             }}
                             const monthNumber = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
                             monthHtml += `<div class="month-cell" style="display:flex; flex-direction:column; justify-content:center; align-items:center; line-height:1;">
-                                <div style="font-size:9px; font-weight:bold;">${{monthNumber}}</div>
-                                <div style="display:flex; width:100%; border-top:1px solid rgba(255,255,255,0.2);">
-                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc;">1Q</div>
-                                    <div style="flex:1; text-align:center; font-size:8px; color:#ccc;">2Q</div>
+                                <div style="font-size:9px; font-weight:bold; height: 50%; display:flex; align-items:center;">${{monthNumber}}</div>
+                                <div style="display:flex; width:100%; height: 50%; border-top:1px solid rgba(255,255,255,0.2);">
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">1</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">2</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">3</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; color:#ccc; display:flex; align-items:center; justify-content:center;">4</div>
                                 </div>
                             </div>`;
                             monthsInCurrentYear++;
@@ -1924,15 +1926,18 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             divider.style.left = `${{left}}px`; 
                             chartContainer.appendChild(divider);
 
-                            // Fortnight divider (approx 15 days)
-                            const fortnightDate = new Date(currentDate);
-                            fortnightDate.setUTCDate(15);
-                            const leftF = getPosition(fortnightDate);
-                            const dividerF = document.createElement('div');
-                            dividerF.className = 'month-divider fortnight';
-                            dividerF.style.left = `${{leftF}}px`;
-                            dividerF.style.borderLeft = '1px dotted rgba(0,0,0,0.1)'; // Dotted line for fortnight
-                            chartContainer.appendChild(dividerF);
+                            // Week dividers (approx days 8, 15, 22)
+                            const weekOffsets = [8, 15, 22]; 
+                            weekOffsets.forEach(day => {{
+                                const wDate = new Date(currentDate);
+                                wDate.setUTCDate(day);
+                                const leftW = getPosition(wDate);
+                                const dividerW = document.createElement('div');
+                                dividerW.className = 'month-divider week';
+                                dividerW.style.left = `${{leftW}}px`;
+                                dividerW.style.borderLeft = '1px dotted rgba(0,0,0,0.1)';
+                                chartContainer.appendChild(dividerW);
+                            }});
 
                             currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                             totalMonths++;
@@ -2609,13 +2614,13 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 .gantt-sidebar-wrapper.collapsed .toggle-sidebar-btn {{ transform: rotate(180deg); }}
                 .gantt-chart-content {{ flex: 1; overflow: auto; position: relative; background-color: white; user-select: none; cursor: grab; }}
                 .gantt-chart-content.active {{ cursor: grabbing; }}
-                .chart-container {{ position: relative; min-width: {total_meses_proj * 60}px; }}
+                .chart-container {{ position: relative; min-width: {total_meses_proj * 120}px; }}
                 .chart-header {{ background: linear-gradient(135deg, #4a5568, #2d3748); color: white; height: 60px; position: sticky; top: 0; z-index: 9; display: flex; flex-direction: column; }}
                 .year-header {{ height: 30px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); }}
                 .year-section {{ text-align: center; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); height: 100%; }}
                 .month-header {{ height: 30px; display: flex; align-items: center; }}
-                .month-cell {{ width: 60px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
-                .chart-body {{ position: relative; min-height: auto; background-size: 60px 60px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
+                .month-cell {{ width: 120px; height: 30px; border-right: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }}
+                .chart-body {{ position: relative; min-height: auto; background-size: 120px 120px; background-image: linear-gradient(to right, #f8f9fa 1px, transparent 1px); }}
                 .gantt-row {{ position: relative; height: 30px; border-bottom: 1px solid #eff2f5; background-color: white; }}
                 .gantt-bar {{ position: absolute; height: 14px; top: 8px; border-radius: 3px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; padding: 0 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
                 .gantt-bar-overlap {{ position: absolute; height: 14px; top: 8px; background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.25) 25%, transparent 25%, transparent 50%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.25) 75%, transparent 75%, transparent); background-size: 8px 8px; z-index: 9; pointer-events: none; border-radius: 3px; }}
@@ -2897,7 +2902,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 const dataMinStr = '{data_min_proj.strftime("%Y-%m-%d")}'; // Range global
                 const dataMaxStr = '{data_max_proj.strftime("%Y-%m-%d")}'; // Range global
                 let tipoVisualizacao = '{tipo_visualizacao}';
-                const PIXELS_PER_MONTH = 60;
+                const PIXELS_PER_MONTH = 120;
 
                 // --- Helpers de Data ---
                 const formatDateDisplay = (dateStr) => {{
@@ -3098,10 +3103,12 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }}
                         const monthNumber = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
                         monthHtml += `<div class="month-cell" style="display:flex; flex-direction:column; justify-content:center; align-items:center; line-height:1;">
-                                <div style="font-size:9px; font-weight:bold;">${monthNumber}</div>
-                                <div style="display:flex; width:100%; border-top:1px solid rgba(255,255,255,0.2);">
-                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc;">1Q</div>
-                                    <div style="flex:1; text-align:center; font-size:8px; color:#ccc;">2Q</div>
+                                <div style="font-size:9px; font-weight:bold; height: 50%; display:flex; align-items:center;">${{monthNumber}}</div>
+                                <div style="display:flex; width:100%; height: 50%; border-top:1px solid rgba(255,255,255,0.2);">
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">1</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">2</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; border-right:1px solid rgba(255,255,255,0.1); color:#ccc; display:flex; align-items:center; justify-content:center;">3</div>
+                                    <div style="flex:1; text-align:center; font-size:8px; color:#ccc; display:flex; align-items:center; justify-content:center;">4</div>
                                 </div>
                             </div>`;
                         monthsInCurrentYear++;
@@ -3271,15 +3278,18 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         divider.style.left = left + 'px'; 
                         chartContainer.appendChild(divider);
 
-                        // Fortnight divider (approx 15 days)
-                        const fortnightDate = new Date(currentDate);
-                        fortnightDate.setUTCDate(15);
-                        const leftF = getPosition(fortnightDate);
-                        const dividerF = document.createElement('div');
-                        dividerF.className = 'month-divider fortnight';
-                        dividerF.style.left = leftF + 'px';
-                        dividerF.style.borderLeft = '1px dotted rgba(0,0,0,0.1)'; // Dotted line for fortnight
-                        chartContainer.appendChild(dividerF);
+                        // Week dividers (approx days 8, 15, 22)
+                        const weekOffsets = [8, 15, 22]; 
+                        weekOffsets.forEach(day => {{
+                            const wDate = new Date(currentDate);
+                            wDate.setUTCDate(day);
+                            const leftW = getPosition(wDate);
+                            const dividerW = document.createElement('div');
+                            dividerW.className = 'month-divider week';
+                            dividerW.style.left = `${{leftW}}px`;
+                            dividerW.style.borderLeft = '1px dotted rgba(0,0,0,0.1)';
+                            chartContainer.appendChild(dividerW);
+                        }});
 
                         currentDate.setUTCMonth(currentDate.getUTCMonth() + 1);
                         totalMonths++;
