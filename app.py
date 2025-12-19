@@ -807,7 +807,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
         if "% concluído" not in df_gantt_sem_pulmao.columns:
             df_gantt_sem_pulmao["% concluído"] = 0
-        df_gantt_sem_pulmao["% concluído"] = df_gantt_sem_pulmao["% concluído"].fillna(0).apply(converter_porcentagem)
+        # A conversão já foi feita no load_data, então apenas garantimos 0 nos NaNs
+        df_gantt_sem_pulmao["% concluído"] = df_gantt_sem_pulmao["% concluído"].fillna(0)
 
         # Agrega os dados (usando siglas)
         df_gantt_agg_sem_pulmao = df_gantt_sem_pulmao.groupby(['Empreendimento', 'Etapa']).agg(
