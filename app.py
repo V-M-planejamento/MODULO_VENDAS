@@ -815,7 +815,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
             Termino_Prevista=('Termino_Prevista', 'max'),
             Inicio_Real=('Inicio_Real', 'min'),
             Termino_Real=('Termino_Real', 'max'),
-            **{'% concluído': ('% concluído', 'max')},
+            **{'% concluído': ('% concluído', 'mean')},
             SETOR=('SETOR', 'first')
         ).reset_index()
 
@@ -4094,7 +4094,7 @@ with st.spinner("Carregando e processando dados..."):
                         }
                         
                         if '% concluído' in df_detalhes_tabelao.columns:
-                            agg_dict['Percentual_Concluido'] = ('% concluído', 'max')
+                            agg_dict['Percentual_Concluido'] = ('% concluído', 'mean')
 
                         df_detalhes_tabelao['Empreendimento'] = df_detalhes_tabelao['Empreendimento'].apply(abreviar_nome)
                         df_agregado = df_detalhes_tabelao.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
