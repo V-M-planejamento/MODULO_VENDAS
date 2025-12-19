@@ -138,14 +138,16 @@ def process_data(df):
 
         # Converter % concluído
         if '% concluído' in df.columns:
-            df['% concluído'] = (
-                pd.to_numeric(
-                    df['% concluído'].astype(str)
-                    .str.replace('%', '')
-                    .str.replace(',', '.'), 
-                    errors='coerce'
-                ) / 100
-            ).fillna(0)
+            # Primeiro converte para string e limpa
+            df['% concluído'] = df['% concluído'].astype(str).str.replace('%', '').str.replace(',', '.')
+            
+            # Converte para numérico
+            df['% concluído'] = pd.to_numeric(df['% concluído'], errors='coerce').fillna(0)
+            
+            # Se o valor for > 1 (ex: 100), divide por 100. Se for <= 1 (ex: 1.0 ou 0.5), mantém.
+            # Assume que 1.0 significa 100% vindo do Smartsheet se já estiver em decimal
+            mask_maior_que_um = df['% concluído'] > 1.0
+            df.loc[mask_maior_que_um, '% concluído'] = df.loc[mask_maior_que_um, '% concluído'] / 100.0
 
         # Renomear colunas
         df = df.rename(columns={'Atividade': 'Etapa'})
