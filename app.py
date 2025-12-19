@@ -73,7 +73,11 @@ def converter_porcentagem(valor):
         valor = ''.join(c for c in valor if c.isdigit() or c in ['.', ',']).replace(',', '.').strip()
         if not valor: return 0.0
     try:
-        return float(valor) * 100 if float(valor) <= 1 else float(valor)
+        val_float = float(valor)
+        # Ajuste para tolerância de ponto flutuante: considera 1.0001 como 1.0 (100%)
+        # Valores muito baixos (ex: 0.01 = 1%) também serão multiplicados (ex: 1.0)
+        # Assumiremos que valores <= 1.5 sejam decimais, para evitar erros com "1.00000001"
+        return val_float * 100 if val_float <= 1.01 else val_float
     except (ValueError, TypeError):
         return 0.0
 
