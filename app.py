@@ -2443,7 +2443,8 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
 
     if "% concluído" not in df_gantt.columns: 
         df_gantt["% concluído"] = 0
-    df_gantt["% concluído"] = df_gantt["% concluído"].fillna(0).apply(converter_porcentagem)
+    # A conversão já foi feita no load_data, então apenas garantimos 0 nos NaNs
+    df_gantt["% concluído"] = df_gantt["% concluído"].fillna(0)
 
     # Agrupar por Etapa E Empreendimento
     df_gantt_agg = df_gantt.groupby(['Etapa', 'Empreendimento']).agg(
@@ -2451,7 +2452,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
         Termino_Prevista=('Termino_Prevista', 'max'),
         Inicio_Real=('Inicio_Real', 'min'),
         Termino_Real=('Termino_Real', 'max'),
-        **{'% concluído': ('% concluído', 'max')},
+        **{'% concluído': ('% concluído', 'mean')},
         SETOR=('SETOR', 'first')
     ).reset_index()
     
