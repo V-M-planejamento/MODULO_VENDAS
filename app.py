@@ -2497,7 +2497,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 if pd.notna(end_real_original) and pd.notna(end_date):
                     if end_real_original <= end_date: status_color_class = 'status-green'
                     else: status_color_class = 'status-red'
-            elif progress < 100 and pd.notna(end_date) and (end_date < hoje): status_color_class = 'status-yellow'
+            elif progress < 100 and pd.notna(start_real) and pd.notna(end_real_original) and (end_real_original < hoje): status_color_class = 'status-yellow'
 
             task = {
                 "id": f"t{j}_{i}", # ID único
