@@ -2477,6 +2477,17 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
         etapa_nome_completo = sigla_para_nome_completo.get(etapa_sigla, etapa_sigla)
         all_stage_names_full.append(etapa_nome_completo)
         
+        # *** ORDENAR EMPREENDIMENTOS POR META DE ASSINATURA ***
+        # Criar ordenação baseada na data de meta de cada empreendimento
+        empreendimentos_ordenados = criar_ordenacao_empreendimentos(df_original_para_ordenacao)
+        
+        # Criar mapeamento de ordem para esta etapa
+        ordem_meta = {emp: idx for idx, emp in enumerate(empreendimentos_ordenados)}
+        
+        # Adicionar coluna de ordem e ordenar DataFrame da etapa por meta
+        df_etapa_agg['ordem_meta'] = df_etapa_agg['Empreendimento'].map(ordem_meta).fillna(999)
+        df_etapa_agg = df_etapa_agg.sort_values('ordem_meta')
+        
         tasks_base_data_for_stage = []
         
         for j, row in df_etapa_agg.iterrows():
@@ -4074,6 +4085,7 @@ with st.spinner("Carregando e processando dados..."):
                         
                         opcoes_classificacao = {
                             'Padrão (UGB, Empreendimento e Etapa)': ['UGB', 'Empreendimento', 'Etapa_Ordem'],
+                            'Meta de Assinatura': ['ordem_meta', 'Etapa_Ordem'],
                             'UGB (A-Z)': ['UGB'],
                             'Empreendimento (A-Z)': ['Empreendimento'],
                             'Data de Início Previsto (Mais antiga)': ['Inicio_Prevista'],
@@ -4113,7 +4125,20 @@ with st.spinner("Carregando e processando dados..."):
                         if '% concluído' in df_detalhes_tabelao.columns:
                             agg_dict['Percentual_Concluido'] = ('% concluído', 'mean')
 
+                        # *** CALCULAR ORDEM POR META ANTES DE ABREVIAR NOMES ***
+                        # Criar ordenação por meta de assinatura usando nomes completos
+                        empreendimentos_ordenados_por_meta = criar_ordenacao_empreendimentos(df_data)
+                        ordem_meta_dict = {emp: idx for idx, emp in enumerate(empreendimentos_ordenados_por_meta)}
+                        
+                        # Mapear ordem de meta para cada empreendimento (ainda com nome completo)
+                        df_detalhes_tabelao['ordem_meta'] = df_detalhes_tabelao['Empreendimento'].map(ordem_meta_dict).fillna(999)
+                        
+                        # Agora abreviar os nomes dos empreendimentos
                         df_detalhes_tabelao['Empreendimento'] = df_detalhes_tabelao['Empreendimento'].apply(abreviar_nome)
+                        
+                        # Adicionar ordem_meta ao agg_dict para preservar após groupby
+                        agg_dict['ordem_meta'] = ('ordem_meta', 'first')
+                        
                         df_agregado = df_detalhes_tabelao.groupby(['UGB', 'Empreendimento', 'Etapa']).agg(**agg_dict).reset_index()
                         
                         df_agregado['Var. Term'] = df_agregado.apply(lambda row: calculate_business_days(row['Termino_Prevista'], row['Termino_Real']), axis=1)
