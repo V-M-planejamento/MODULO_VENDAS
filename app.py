@@ -2111,11 +2111,22 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     function populateFilters() {{
                         if (filtersPopulated) return;
 
-                        // Popula o select normal de Projeto
+                        // *** ORDENAR PROJETOS POR DATA DE META ***
+                        // Criar array com índices e datas de meta para ordenação
+                        const projectsWithMeta = allProjectsData.map((proj, originalIndex) => ({{
+                            project: proj,
+                            originalIndex: originalIndex,
+                            metaDate: proj.meta_assinatura_date ? new Date(proj.meta_assinatura_date) : new Date('9999-12-31')
+                        }}));
+                        
+                        // Ordenar do mais antigo (urgente) ao mais novo
+                        projectsWithMeta.sort((a, b) => a.metaDate - b.metaDate);
+                        
+                        // Popula o select normal de Projeto com projetos ordenados por meta
                         const selProject = document.getElementById('filter-project-{project["id"]}');
-                        allProjectsData.forEach((proj, index) => {{
-                            const isSelected = (index === initialProjectIndex) ? 'selected' : '';
-                            selProject.innerHTML += '<option value="' + index + '" ' + isSelected + '>' + proj.name + '</option>';
+                        projectsWithMeta.forEach(({{project, originalIndex}}) => {{
+                            const isSelected = (originalIndex === initialProjectIndex) ? 'selected' : '';
+                            selProject.innerHTML += '<option value="' + originalIndex + '" ' + isSelected + '>' + project.name + '</option>';
                         }});
 
                         // Configurações comuns para Virtual Select
