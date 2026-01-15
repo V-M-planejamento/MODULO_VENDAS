@@ -3906,7 +3906,9 @@ with st.spinner("Carregando e processando dados..."):
             df_filtered = df_filtered[df_filtered["Etapa"] == sigla_selecionada]
         df_para_exibir = df_filtered.copy()
         # Criar a lista de ordenação de empreendimentos (necessário para ambas as tabelas)
-        empreendimentos_ordenados_por_meta = criar_ordenacao_empreendimentos(df_data)
+        # APLICAR CONVERSÃO DE NOMES para garantir compatibilidade com df_filtered
+        empreendimentos_ordenados_por_meta_raw = criar_ordenacao_empreendimentos(df_data)
+        empreendimentos_ordenados_por_meta = [converter_nome_empreendimento(emp) for emp in empreendimentos_ordenados_por_meta_raw]
         # Copiar o dataframe filtrado para ser usado nas tabelas
         df_detalhes = df_para_exibir.copy()
         
@@ -4131,6 +4133,7 @@ with st.spinner("Carregando e processando dados..."):
                             classificar_por = st.selectbox(
                                 "Ordenar tabela por:",
                                 options=list(opcoes_classificacao.keys()),
+                                index=1,  # Meta de Assinatura como padrão
                                 key="classificar_por_selectbox"
                             )
                             
