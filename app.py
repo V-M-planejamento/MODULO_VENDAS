@@ -3973,25 +3973,12 @@ with st.spinner("Carregando e processando dados..."):
                     lambda row: calculate_business_days(row['Termino_Prevista'], row['Termino_Real']), axis=1
                 )
                 
-                # *** DEBUG: Mostrar lista de ordenação ***
-                st.write("🔍 DEBUG - Lista de ordenação por meta:")
-                st.write(empreendimentos_ordenados_por_meta[:10])  # Apenas primeiros 10
-                
                 # *** ORDENAÇÃO POR META - USAR ÍNDICE NUMÉRICO DIRETO ***
                 # Criar dicionário de mapeamento: empreendimento -> índice de ordem
                 ordem_meta_dict = {emp: idx for idx, emp in enumerate(empreendimentos_ordenados_por_meta)}
                 
-                # *** DEBUG: Mostrar empreendimentos REAIS em df_agregado ANTES do map ***
-                st.write("🔍 DEBUG - Empreendimentos REAIS em df_agregado (antes do map):")
-                st.write(df_agregado['Empreendimento'].unique()[:10])
-                
                 # Mapear cada empreendimento para seu índice de ordem (número)
                 df_agregado['ordem_meta_num'] = df_agregado['Empreendimento'].map(ordem_meta_dict).fillna(9999)
-                
-                # *** DEBUG: Mostrar empreendimentos únicos e suas ordens ***
-                st.write("🔍 DEBUG - Empreendimentos no df_agregado com suas ordens:")
-                debug_df = df_agregado[['Empreendimento', 'ordem_meta_num']].drop_duplicates().sort_values('ordem_meta_num')
-                st.write(debug_df.head(10))
                 
                 # 1. Mapear a etapa para sua ordem global (agora incluindo subetapas)
                 def get_global_order_linear(etapa):
@@ -4004,10 +3991,6 @@ with st.spinner("Carregando e processando dados..."):
                 
                 # 2. Ordenar: PRIMEIRO por ordem_meta_num, DEPOIS por Ordem da Etapa
                 df_ordenado = df_agregado.sort_values(by=['ordem_meta_num', 'Etapa_Ordem'])
-                
-                # *** DEBUG: Mostrar primeiras linhas após ordenação ***
-                st.write("🔍 DEBUG - Primeiras 5 linhas APÓS ordenação:")
-                st.write(df_ordenado[['Empreendimento', 'Etapa', 'ordem_meta_num', 'Etapa_Ordem']].head(10))
 
                 st.write("---")
 
