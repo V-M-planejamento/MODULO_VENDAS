@@ -3967,6 +3967,10 @@ with st.spinner("Carregando e processando dados..."):
                 # Criar dicionário de mapeamento: empreendimento -> índice de ordem
                 ordem_meta_dict = {emp: idx for idx, emp in enumerate(empreendimentos_ordenados_por_meta)}
                 
+                # *** DEBUG: Mostrar empreendimentos REAIS em df_agregado ANTES do map ***
+                st.write("🔍 DEBUG - Empreendimentos REAIS em df_agregado (antes do map):")
+                st.write(df_agregado['Empreendimento'].unique()[:10])
+                
                 # Mapear cada empreendimento para seu índice de ordem (número)
                 df_agregado['ordem_meta_num'] = df_agregado['Empreendimento'].map(ordem_meta_dict).fillna(9999)
                 
