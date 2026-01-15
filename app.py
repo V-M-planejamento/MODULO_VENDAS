@@ -3959,11 +3959,12 @@ with st.spinner("Carregando e processando dados..."):
                     lambda row: calculate_business_days(row['Termino_Prevista'], row['Termino_Real']), axis=1
                 )
                 
-                df_agregado['ordem_empreendimento'] = pd.Categorical(
-                    df_agregado['Empreendimento'],
-                    categories=empreendimentos_ordenados_por_meta,
-                    ordered=True
-                )
+                # *** ORDENAÇÃO POR META - USAR ÍNDICE NUMÉRICO DIRETO ***
+                # Criar dicionário de mapeamento: empreendimento -> índice de ordem
+                ordem_meta_dict = {emp: idx for idx, emp in enumerate(empreendimentos_ordenados_por_meta)}
+                
+                # Mapear cada empreendimento para seu índice de ordem (número)
+                df_agregado['ordem_meta_num'] = df_agregado['Empreendimento'].map(ordem_meta_dict).fillna(9999)
                 
                 # 1. Mapear a etapa para sua ordem global (agora incluindo subetapas)
                 def get_global_order_linear(etapa):
@@ -3974,8 +3975,8 @@ with st.spinner("Carregando e processando dados..."):
 
                 df_agregado['Etapa_Ordem'] = df_agregado['Etapa'].apply(get_global_order_linear)
                 
-                # 2. Ordenar: Empreendimento, Ordem da Etapa (linear)
-                df_ordenado = df_agregado.sort_values(by=['ordem_empreendimento', 'Etapa_Ordem'])
+                # 2. Ordenar: PRIMEIRO por ordem_meta_num, DEPOIS por Ordem da Etapa
+                df_ordenado = df_agregado.sort_values(by=['ordem_meta_num', 'Etapa_Ordem'])
 
                 st.write("---")
 
@@ -3989,7 +3990,7 @@ with st.spinner("Carregando e processando dados..."):
                     tabela_para_processar['Etapa'] = tabela_para_processar['Etapa'].map(sigla_para_nome_completo)
                     tabela_final_lista.append(tabela_para_processar)
                 else:
-                    for _, grupo in df_ordenado.groupby('ordem_empreendimento', sort=False):
+                    for _, grupo in df_ordenado.groupby('ordem_meta_num', sort=False):
                         if grupo.empty:
                             continue
 
