@@ -3906,9 +3906,23 @@ with st.spinner("Carregando e processando dados..."):
             df_filtered = df_filtered[df_filtered["Etapa"] == sigla_selecionada]
         df_para_exibir = df_filtered.copy()
         # Criar a lista de ordenação de empreendimentos (necessário para ambas as tabelas)
-        # APLICAR CONVERSÃO DE NOMES para garantir compatibilidade com df_filtered
+        # *** CORREÇÃO CRÍTICA: Usar df_filtered em vez de df_data ***
+        # df_data pode não conter todos os empreendimentos que aparecem em df_filtered após filtros
+        # Precisamos ordenar os empreendimentos que REALMENTE aparecem nos dados filtrados
         empreendimentos_ordenados_por_meta_raw = criar_ordenacao_empreendimentos(df_data)
-        empreendimentos_ordenados_por_meta = [converter_nome_empreendimento(emp) for emp in empreendimentos_ordenados_por_meta_raw]
+        empreendimentos_ordenados_por_meta_convertidos = [converter_nome_empreendimento(emp) for emp in empreendimentos_ordenados_por_meta_raw]
+        
+        # Pegar empreendimentos únicos que REALMENTE aparecem em df_filtered
+        empreendimentos_visiveis = df_filtered['Empreendimento'].unique().tolist()
+        
+        # Ordenar apenas os empreendimentos visíveis pela ordem de meta
+        # Preservar a ordem de empreendimentos_ordenados_por_meta_convertidos, mas incluir APENAS os visíveis
+        empreendimentos_ordenados_por_meta = [emp for emp in empreendimentos_ordenados_por_meta_convertidos if emp in empreendimentos_visiveis]
+        
+        # Adicionar empreendimentos visíveis que não estavam na lista original (no final)
+        for emp in empreendimentos_visiveis:
+            if emp not in empreendimentos_ordenados_por_meta:
+                empreendimentos_ordenados_por_meta.append(emp)
         # Copiar o dataframe filtrado para ser usado nas tabelas
         df_detalhes = df_para_exibir.copy()
         
