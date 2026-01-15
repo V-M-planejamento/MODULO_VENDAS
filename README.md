@@ -4,32 +4,54 @@ Dashboard interativo para visualização comparativa entre prazos previstos e re
 
 ## 🎯 Ordenação por Meta de Assinatura
 
-A aplicação utiliza uma lógica centralizada para ordenar empreendimentos baseada na **urgência da meta de assinatura**. Essa ordenação é consistente em todas as visualizações: Gráficos de Gantt, Filtros e Tabelas.
+A aplicação utiliza uma lógica centralizada para ordenar empreendimentos baseada na **urgência da meta de assinatura**. 
 
-### Comportamento
+### 📊 Exemplo Visual
 
-1.  **Definição da Meta**: A data de meta é extraída da etapa **"DEMANDA MÍNIMA"** (ou etapa 'M').
-2.  **Prioridade de Data**:
-    *   Tenta usar `Início Previsto`
-    *   Se não houver, usa `Término Previsto`
-    *   Fallback para datas reais se necessário
-3.  **Critério de Ordenação**:
-    *   **Do Mais Antigo para o Mais Novo**: Empreendimentos com metas mais antigas (mais urgentes) aparecem no topo.
-    *   **Sem Meta**: Empreendimentos sem data de meta definida são posicionados ao final da lista.
-4.  **Consistência**: A mesma ordem é garantida no Filtro de Projetos, no Gantt Consolidado, na Visão Detalhada e no Tabelão Horizontal.
-
-### Exemplo Visual
-
-Imagine a seguinte lista de empreendimentos ordenados por prioridade:
-
-```text
-1. AMOREIRAS-01      (Meta: 01/01/2024)  [↑ Mais Urgente]
-2. AMOREIRAS-02      (Meta: 15/01/2024)
-3. OLIVEIRAS-01      (Meta: 10/02/2024)
-4. JARDIM DA SERRA   (Meta: 05/03/2024)
-...
-9. EMPREENDIMENTO X  (Sem Meta definida) [↓ Menor Prioridade]
+```
+GANTT CHART
+═══════════════════════════════════════════════════════════════
+  Jan/26    Fev/26    Mar/26    Abr/26    Mai/26    Jun/26
+─────────────────────────────────────────────────────────────
+                            ┊
+DM         ████████████     ┊
+DOC              ██████████ ┊
+LAE                   █████ ┊ █████
+MEM                         ┊   ██████████
+CONT                        ┊        ███████████
+ASS                         ┊              ██████████
+M                           ┊                 ███████
+PJ                          ┊                      ██████
+                            ┊
+                        [DM: 15/04/26]
+                            ↑
+                  LINHA DE META (tracejada verde)
 ```
 
-Nas tabelas (Visão Detalhada e Tabelão), os empreendimentos serão listados exatamente nesta sequência, permitindo que a equipe foque nos prazos mais críticos primeiro.
+### 🛠️ Comportamento e Casos Especiais
 
+A lógica de ordenação e visualização trata automaticamente diversos cenários:
+
+#### 1. Empreendimento sem Etapa 'M'
+**Situação**: Novo empreendimento ainda em fase inicial ou sem cadastro da etapa de Demanda Mínima.
+**Comportamento**: 
+- Assume `pd.Timestamp.max` (data muito distante).
+- O empreendimento aparece **no final** de todas as listas e tabelas.
+
+#### 2. Etapa 'M' sem Datas
+**Situação**: A etapa existe mas não possui datas previstas ou reais preenchidas.
+**Comportamento**: 
+- Assume `pd.Timestamp.max`.
+- O empreendimento aparece **no final** da ordenação.
+
+#### 3. Meta já Passou
+**Situação**: A data de meta (Demanda Mínima) é anterior à data atual.
+**Comportamento**:
+- ✅ A linha de meta **continua aparecendo** no gráfico (se estiver no período visível).
+- ✅ O empreendimento mantém sua posição de **alta prioridade** na ordenação (pois é urgente/atrasado).
+- ⚠️ Serve como alerta visual de possível atraso na conquista da meta.
+
+#### 4. Filtragem
+**Comportamento**:
+- A lista de ordenação se adapta dinamicamente aos filtros aplicados.
+- Apenas empreendimentos visíveis na tabela atual são reordenados, garantindo que a sequência (Mais Urgente → Menos Urgente) seja sempre respeitada.
