@@ -3417,8 +3417,43 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     //     vsGrupo = VirtualSelect.init({{ ... }});
                     // }}
 
-                    // *** 4. FILTRO DE EMPREENDIMENTO (Renomeado) ***
-                    const empreendimentoOptions = filterOptions.empreendimentos.map(e => ({{ label: e, value: e }}));
+                    // *** 4. FILTRO DE EMPREENDIMENTO (Renomeado e ORDENADO) ***
+                    // *** ORDENAR EMPREENDIMENTOS POR DATA DE META ***
+                    // Extrair empreendimentos únicos de todos os dados
+                    let empreendimentosComMeta = [];
+                    const empsSet = new Set();
+                    
+                    // Coletar todos os empreendimentos únicos de todas as etapas
+                    Object.values(allDataByStage).forEach(stageTasks => {{
+                        stageTasks.forEach(task => {{
+                            if (!empsSet.has(task.name)) {{
+                                empsSet.add(task.name);
+                                // Tentar encontrar a meta deste empreendimento
+                                // Buscar nos dados da etapa 'M' (se existir em allDataByStage)
+                                let metaDate = null;
+                                const stageMeta = allDataByStage['DEMANDA MÍNIMA'] || allDataByStage['Demanda Mínima'] || allDataByStage['DEMANDA MINIMA'];
+                                if (stageMeta) {{
+                                    const taskMeta = stageMeta.find(t => t.name === task.name);
+                                    if (taskMeta && taskMeta.start_previsto) {{
+                                        metaDate = new Date(taskMeta.start_previsto);
+                                    }}
+                                }}
+                                
+                                empreendimentosComMeta.push({{
+                                    name: task.name,
+                                    metaDate: metaDate || new Date('9999-12-31')
+                                }});
+                            }}
+                        }});
+                    }});
+                    
+                    // Ordenar do mais antigo (urgente) ao mais novo
+                    empreendimentosComMeta.sort((a, b) => a.metaDate - b.metaDate);
+                    
+                    // Criar array de opções ordenadas
+                    const empreendimentoOptions = empreendimentosComMeta.map(e => ({{ label: e.name, value: e.name }}));
+                    empreendimentoOptions.unshift({{ label: 'Todos', value: 'Todos' }}); // Adicionar opção "Todos" no início
+                    
                     vsEmpreendimento = VirtualSelect.init({{ // Renomeado de vsEtapa
                         ...vsConfig,
                         ele: '#filter-empreendimento-{project["id"]}', // ID Modificado
