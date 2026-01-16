@@ -2629,7 +2629,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }}
                     }});
                     
-                    // 2.1. Fechar menu ao clicar nos círculos internos
+                    // 2.1. Fechar menu ao clicar nos circulos internos
                     const radialCenter = menu.querySelector('.radial-center');
                     const radialBgCircle = menu.querySelector('.radial-background-circle');
                     
@@ -2645,7 +2645,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         radialBgCircle.addEventListener('click', (e) => {{
                             e.stopPropagation();
                             menu.style.display = 'none';
-                            console.log('❌ Menu fechado (clique no círculo de fundo)');
+                            console.log('❌ Menu fechado (clique no circulo de fundo)');
                         }});
                     }}
                     
@@ -2785,12 +2785,12 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }}
                     }});
 
-                    // 7. Botões de formatação da toolbar
+                    // 7. Botoes de formatacao da toolbar
                     const boldBtn = document.getElementById('btn-bold');
                     const italicBtn = document.getElementById('btn-italic');
                     const listBtn = document.getElementById('btn-list');
 
-                    // Função auxiliar para inserir texto no cursor
+                    // Funcao auxiliar para inserir texto no cursor
                     function insertAtCursor(textBefore, textAfter = '') {{
                         const start = notepadTextarea.selectionStart;
                         const end = notepadTextarea.selectionEnd;
@@ -2816,10 +2816,10 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             const selectedText = notepadTextarea.value.substring(start, end);
                             
                             if (selectedText) {{
-                                // Se há texto selecionado, envolver com **
+                                // Se ha texto selecionado, envolver com **
                                 insertAtCursor('**', '**');
                             }} else {{
-                                // Se não há seleção, inserir marcador
+                                // Se nao ha selecao, inserir marcador
                                 insertAtCursor('**texto em negrito**');
                             }}
                         }});
@@ -2834,18 +2834,18 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             if (selectedText) {{
                                 insertAtCursor('*', '*');
                             }} else {{
-                                insertAtCursor('*texto em itálico*');
+                                insertAtCursor('*texto em italico*');
                             }}
                         }});
                     }}
 
                     if (listBtn) {{
                         listBtn.addEventListener('click', () => {{
-                            // Adicionar bullet point no início da linha
+                            // Adicionar bullet point no inicio da linha
                             const start = notepadTextarea.selectionStart;
                             const text = notepadTextarea.value;
                             
-                            // Encontrar início da linha atual
+                            // Encontrar inicio da linha atual
                             let lineStart = start;
                             while (lineStart > 0 && text[lineStart - 1] !== '\n') {{
                                 lineStart--;
