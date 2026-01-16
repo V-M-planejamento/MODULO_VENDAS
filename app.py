@@ -1149,6 +1149,254 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         font-size: 13px;
                     }}
 
+                    /* ==== RADIAL CONTEXT MENU ==== */
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+                    
+                    #radial-menu {{
+                        position: fixed;
+                        z-index: 2147483647;
+                        display: none;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                    }}
+
+                    .radial-menu-wrapper {{
+                        position: relative;
+                        width: 170px;
+                        height: 170px;
+                    }}
+
+                    .radial-center {{
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 28px;
+                        height: 28px;
+                        border: 2px solid #007AFF;
+                        border-radius: 50%;
+                        background: transparent;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        z-index: 10;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }}
+
+                    .radial-center:hover {{
+                        transform: translate(-50%, -50%) scale(1.1);
+                        border-width: 3px;
+                    }}
+
+                    .radial-background-circle {{
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 90px;
+                        height: 90px;
+                        border: 2px solid #f0f0f0;
+                        border-radius: 50%;
+                        background: transparent;
+                        z-index: 1;
+                    }}
+
+                    .radial-item {{
+                        position: absolute;
+                        width: 22px;
+                        height: 22px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        z-index: 5;
+                        background: white;
+                        border: 1.5px solid #f0f0f0;
+                        border-radius: 5px;
+                        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+                    }}
+
+                    .radial-item:hover {{
+                        background: #f5f5f5;
+                        transform: scale(1.1);
+                        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+                        border-color: #007AFF;
+                    }}
+
+                    .radial-item svg {{
+                        width: 14px;
+                        height: 14px;
+                        transition: all 0.2s ease;
+                        fill: #333333;
+                        stroke: #333333;
+                    }}
+
+                    .radial-item:hover svg {{
+                        fill: #007AFF;
+                        stroke: #007AFF;
+                    }}
+
+                    /* Modo de Foco - Escurecer barras */
+                    .gantt-bar.focus-mode {{
+                        filter: grayscale(100%) brightness(0.4) !important;
+                        opacity: 0.5 !important;
+                        transition: all 0.3s ease;
+                    }}
+
+                    .gantt-bar.focus-mode.focused {{
+                        filter: none !important;
+                        opacity: 1 !important;
+                    }}
+
+                    .radial-tooltip {{
+                        position: absolute;
+                        padding: 3px 6px;
+                        border-radius: 10px;
+                        font-size: 8px;
+                        font-weight: 500;
+                        white-space: nowrap;
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        pointer-events: none;
+                        transition: background 0.2s ease, color 0.2s ease;
+                        z-index: 15;
+                        background: #f5f5f5;
+                        color: #333;
+                    }}
+
+                    .radial-item:hover + .radial-tooltip {{
+                        background: #007AFF;
+                        color: white;
+                    }}
+
+                    .radial-item:hover + .radial-tooltip .tooltip-badge {{
+                        background: white;
+                        color: #007AFF;
+                    }}
+
+                    .radial-item:hover + .radial-tooltip.yellow-tooltip {{
+                        background: #FFC107 !important;
+                        color: #333 !important;
+                    }}
+
+                    .radial-item:hover + .radial-tooltip.yellow-tooltip .tooltip-badge {{
+                        background: #333;
+                        color: #FFC107;
+                    }}
+
+                    .tooltip-badge {{
+                        padding: 2px 5px;
+                        border-radius: 4px;
+                        font-size: 8px;
+                        font-weight: 600;
+                        min-width: 14px;
+                        text-align: center;
+                        font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+                        background: #e0e0e0;
+                        color: #666;
+                    }}
+
+                    @keyframes fadeIn {{
+                        from {{ opacity: 0; transform: scale(0.8); }}
+                        to {{ opacity: 1; transform: scale(1); }}
+                    }}
+
+                    .radial-item, .radial-tooltip {{
+                        animation: fadeIn 0.3s ease-out;
+                    }}
+
+                    /* ==== FLOATING NOTEPAD ==== */
+                    #floating-notepad {{
+                        display: none;
+                        position: fixed;
+                        top: 100px;
+                        right: 50px;
+                        width: 320px;
+                        height: 420px;
+                        background: white;
+                        border: 1px solid #e8e8e8;
+                        border-radius: 16px;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+                        z-index: 9999;
+                        flex-direction: column;
+                        font-family: 'Inter', sans-serif;
+                        overflow: hidden;
+                        resize: both;
+                        min-width: 250px;
+                        min-height: 200px;
+                        max-width: 600px;
+                        max-height: 80vh;
+                    }}
+
+                    .notepad-header {{
+                        padding: 14px 18px;
+                        background: #2E384A;
+                        color: white;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        cursor: move;
+                        user-select: none;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    }}
+
+                    .notepad-header-title {{
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }}
+
+                    .notepad-header-title svg {{
+                        width: 18px;
+                        height: 18px;
+                        fill: white;
+                    }}
+
+                    .notepad-header span {{
+                        font-size: 13px;
+                        font-weight: 600;
+                        letter-spacing: 0.3px;
+                    }}
+
+                    .notepad-close {{
+                        background: rgba(255, 255, 255, 0.15);
+                        border: none;
+                        color: white;
+                        width: 26px;
+                        height: 26px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                    }}
+
+                    .notepad-close:hover {{
+                        background: rgba(255, 255, 255, 0.25);
+                        transform: scale(1.1);
+                    }}
+
+                    .notepad-content {{
+                        flex: 1;
+                        padding: 18px;
+                        border: none;
+                        outline: none;
+                        resize: none;
+                        font-size: 14px;
+                        line-height: 1.6;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                        color: #2d3748;
+                    }}
+
+                    .notepad-content::placeholder {{
+                        color: #a0aec0;
+                    }}
+
+
                 </style>
             </head>
             <body>
@@ -1156,6 +1404,32 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                 
                 
                 <div class="gantt-container" id="gantt-container-{project['id']}">
+                    <!-- Menu Radial de Contexto -->
+                    <div id="radial-menu">
+                        <div class="radial-menu-wrapper">
+                            <div class="radial-background-circle"></div>
+                            <div class="radial-center" title="Menu Radial"></div>
+                            <div class="radial-item" id="btn-notepad" style="top: 74px; left: 120px;">
+                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                            </div>
+                            <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">N</span></div>
+                            <div class="radial-item" id="btn-focus-mode" style="top: 74px; left: 28px;">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M18 18l-3-3m3 3l3-3m-3 3v-6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+                            </div>
+                            <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">F</span></div>
+                        </div>
+                    </div>
+                    <div id="floating-notepad">
+                        <div class="notepad-header">
+                            <div class="notepad-header-title">
+                                <svg version="1.1" viewBox="0 0 512 512"><path d="M438.8,73.2H292.4L255,0H73.2v512h365.6V73.2z M401.3,474.5H110.7V37.5h119.2l37.4,73.2h134.1V474.5z"/><rect x="146.3" y="150.8" width="219.4" height="36.6"/><rect x="146.3" y="224" width="219.4" height="36.6"/><rect x="146.3" y="297.1" width="219.4" height="36.6"/><rect x="146.3" y="370.3" width="135.9" height="36.6"/></svg>
+                                <span>Anotações</span>
+                            </div>
+                            <button class="notepad-close">×</button>
+                        </div>
+                        <textarea class="notepad-content" placeholder="Digite suas anotações aqui...&#10;&#10;• Use este espaço para lembrar de tarefas pendentes&#10;• Anote insights sobre o projeto&#10;• Suas notas são salvas automaticamente"></textarea>
+                    </div>
+                    
                 <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
                     <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
@@ -2259,7 +2533,196 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             console.error('Erro ao aplicar filtros:', error);
                             alert('Erro ao aplicar filtros: ' + error.message);
                         }}
-                    }}                  // DEBUG: Verificar se há dados antes de inicializar
+                    }}
+
+                    // --- MENU RADIAL DE CONTEXTO ---
+                    const menu = document.getElementById('radial-menu');
+                    const notepad = document.getElementById('floating-notepad');
+                    const container = document.getElementById('gantt-container-{project["id"]}');
+
+                    // 1. Botão direito para abrir menu
+                    container.addEventListener('contextmenu', (e) => {{
+                        e.preventDefault();
+                        const viewportWidth = window.innerWidth;
+                        const viewportHeight = window.innerHeight;
+                        const menuWidth = 170;
+                        const menuHeight = 170;
+                        
+                        let left = e.clientX;
+                        let top = e.clientY;
+                        
+                        if (left + menuWidth > viewportWidth) left = viewportWidth - menuWidth - 10;
+                        if (left < 0) left = 10;
+                        if (top + menuHeight > viewportHeight) top = viewportHeight - menuHeight - 10;
+                        if (top < 0) top = 10;
+                        
+                        menu.style.left = left + 'px';
+                        menu.style.top = top + 'px';
+                        menu.style.display = 'block';
+                        
+                        console.log('📍 Menu radial aberto');
+                    }});
+                    
+                    // 2. Fechar ao clicar fora
+                    document.addEventListener('click', (e) => {{
+                        if (!menu.contains(e.target) && menu.style.display === 'block') {{
+                            menu.style.display = 'none';
+                        }}
+                    }});
+                    
+                    // 2.1. Fechar menu ao clicar nos círculos internos
+                    const radialCenter = menu.querySelector('.radial-center');
+                    const radialBgCircle = menu.querySelector('.radial-background-circle');
+                    
+                    if (radialCenter) {{
+                        radialCenter.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            menu.style.display = 'none';
+                            console.log('❌ Menu fechado (clique no centro)');
+                        }});
+                    }}
+                    
+                    if (radialBgCircle) {{
+                        radialBgCircle.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            menu.style.display = 'none';
+                            console.log('❌ Menu fechado (clique no círculo de fundo)');
+                        }});
+                    }}
+                    
+                    // 3. FLOATING NOTEPAD
+                    let notepadActive = false;
+                    const notepadBtn = document.getElementById('btn-notepad');
+                    const notepadTextarea = notepad.querySelector('.notepad-content');
+                    const notepadClose = notepad.querySelector('.notepad-close');
+                    const NOTEPAD_STORAGE_KEY = 'gantt_notepad_content';
+                    
+                    const savedContent = localStorage.getItem(NOTEPAD_STORAGE_KEY);
+                    if (savedContent && notepadTextarea) {{
+                        notepadTextarea.value = savedContent;
+                    }}
+                    
+                    if (notepadTextarea) {{
+                        notepadTextarea.addEventListener('input', () => {{
+                            localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                        }});
+                    }}
+                    
+                    if (notepadBtn) {{
+                        notepadBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            notepadActive = !notepadActive;
+                            notepad.style.display = notepadActive ? 'flex' : 'none';
+                            
+                            if (notepadActive) {{
+                                notepadBtn.style.borderColor = '#007AFF';
+                                notepadBtn.style.background = '#e6f2ff';
+                            }} else {{
+                                notepadBtn.style.borderColor = '';
+                                notepadBtn.style.background = '';
+                            }}
+                            
+                            menu.style.display = 'none';
+                            console.log('📝 Notepad toggled:', notepadActive);
+                        }});
+                    }}
+                    
+                    if (notepadClose) {{
+                        notepadClose.addEventListener('click', () => {{
+                            notepadActive = false;
+                            notepad.style.display = 'none';
+                            if (notepadBtn) {{
+                                notepadBtn.style.borderColor = '';
+                                notepadBtn.style.background = '';
+                            }}
+                        }});
+                    }}
+                    
+                    // Drag-and-drop do notepad
+                    let isDragging = false;
+                    let offsetX, offsetY;
+                    const notepadHeader = notepad.querySelector('.notepad-header');
+                    
+                    if (notepadHeader) {{
+                        notepadHeader.addEventListener('mousedown', (e) => {{
+                            if (e.target.closest('.notepad-close')) return;
+                            isDragging = true;
+                            offsetX = e.clientX - notepad.offsetLeft;
+                            offsetY = e.clientY - notepad.offsetTop;
+                            notepadHeader.style.cursor = 'grabbing';
+                        }});
+                    }}
+                    
+                    document.addEventListener('mousemove', (e) => {{
+                        if (isDragging) {{
+                            notepad.style.left = (e.clientX - offsetX) + 'px';
+                            notepad.style.top = (e.clientY - offsetY) + 'px';
+                            notepad.style.right = 'auto';
+                        }}
+                    }});
+                    
+                    document.addEventListener('mouseup', () => {{
+                        if (isDragging) {{
+                            isDragging = false;
+                            if (notepadHeader) notepadHeader.style.cursor = 'move';
+                        }}
+                    }});
+                    
+                    // 4. MODO FOCO
+                    let focusModeActive = false;
+                    const focusBtn = document.getElementById('btn-focus-mode');
+                    
+                    if (focusBtn) {{
+                        focusBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            focusModeActive = !focusModeActive;
+                            
+                            const allBars = container.querySelectorAll('.gantt-bar');
+                            
+                            if (focusModeActive) {{
+                                allBars.forEach(bar => bar.classList.add('focus-mode'));
+                                focusBtn.style.borderColor = '#007AFF';
+                                focusBtn.style.background = '#e6f2ff';
+                                console.log('🎯 Modo foco ATIVADO');
+                            }} else {{
+                                allBars.forEach(bar => {{
+                                    bar.classList.remove('focus-mode', 'focused');
+                                }});
+                                focusBtn.style.borderColor = '';
+                                focusBtn.style.background = '';
+                                console.log('🎯 Modo foco DESATIVADO');
+                            }}
+                            
+                            menu.style.display = 'none';
+                        }});
+                    }}
+                    
+                    // 5. Click em barras para focar/desfocar
+                    container.addEventListener('click', (e) => {{
+                        if (!focusModeActive) return;
+                        
+                        const clickedBar = e.target.closest('.gantt-bar');
+                        if (!clickedBar) return;
+                        
+                        if (clickedBar.classList.contains('focused')) {{
+                            clickedBar.classList.remove('focused');
+                        }} else {{
+                            container.querySelectorAll('.gantt-bar').forEach(bar => bar.classList.remove('focused'));
+                            clickedBar.classList.add('focused');
+                        }}
+                    }});
+
+                    // 6. Atalhos de teclado
+                    document.addEventListener('keydown', (e) => {{
+                        if (e.key === 'n' || e.key === 'N') {{
+                            if (notepadBtn) notepadBtn.click();
+                        }}
+                        if (e.key === 'f' || e.key === 'F') {{
+                            if (focusBtn) focusBtn.click();
+                        }}
+                    }});
+
+                    // DEBUG: Verificar se há dados antes de inicializar
                     console.log('Dados do projeto:', projectData);
                     console.log('Tasks base:', allTasks_baseData);
                     
