@@ -2643,7 +2643,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     
                     // 3. FLOATING NOTEPAD
                     let notepadActive = false;
-                    const notepadBtn = document.getElementById('btn-notepad');
+                    const notepadBtn = document.getElementById('btn-notepad-{project['id']}');
                     const notepadTextarea = notepad.querySelector('.notepad-content');
                     const notepadClose = notepad.querySelector('.notepad-close');
                     const NOTEPAD_STORAGE_KEY = 'gantt_notepad_content';
@@ -2721,7 +2721,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     
                     // 4. MODO FOCO
                     let focusModeActive = false;
-                    const focusBtn = document.getElementById('btn-focus-mode');
+                    const focusBtn = document.getElementById('btn-focus-mode-{project['id']}');
                     
                     if (focusBtn) {{
                         focusBtn.addEventListener('click', (e) => {{
