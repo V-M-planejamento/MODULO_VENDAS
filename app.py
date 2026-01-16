@@ -1452,18 +1452,18 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             <div class="radial-item" id="btn-notepad" style="top: 74px; left: 120px;">
                                 <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                             </div>
-                            <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">Ctrl+N</span></div>
+                            <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">Shift+N</span></div>
                             <div class="radial-item" id="btn-focus-mode" style="top: 74px; left: 28px;">
                                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M18 18l-3-3m3 3l3-3m-3 3v-6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
                             </div>
-                            <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">Ctrl+F</span></div>
+                            <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">Shift+F</span></div>
                         </div>
                     </div>
                     <div id="floating-notepad">
                         <div class="notepad-header">
                             <div class="notepad-header-title">
                                 <svg version="1.1" viewBox="0 0 512 512"><path d="M438.8,73.2H292.4L255,0H73.2v512h365.6V73.2z M401.3,474.5H110.7V37.5h119.2l37.4,73.2h134.1V474.5z"/><rect x="146.3" y="150.8" width="219.4" height="36.6"/><rect x="146.3" y="224" width="219.4" height="36.6"/><rect x="146.3" y="297.1" width="219.4" height="36.6"/><rect x="146.3" y="370.3" width="135.9" height="36.6"/></svg>
-                                <span>Anotações <small style="font-weight: 400; opacity: 0.7; font-size: 10px;">(Ctrl+N)</small></span>
+                                <span>Anotações <small style="font-weight: 400; opacity: 0.7; font-size: 10px;">(Shift+N)</small></span>
                             </div>
                             <button class="notepad-close">×</button>
                         </div>
@@ -2771,15 +2771,15 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         }}
                     }});
 
-                    // 6. Atalhos de teclado (Ctrl+N e Ctrl+F)
+                    // 6. Atalhos de teclado (Shift+N e Shift+F)
                     document.addEventListener('keydown', (e) => {{
-                        // Ctrl+N para notepad
-                        if (e.ctrlKey && (e.key === 'n' || e.key === 'N')) {{
+                        // Shift+N para notepad
+                        if (e.shiftKey && (e.key === 'N')) {{
                             e.preventDefault();
                             if (notepadBtn) notepadBtn.click();
                         }}
-                        // Ctrl+F para modo foco
-                        if (e.ctrlKey && (e.key === 'f' || e.key === 'F')) {{
+                        // Shift+F para modo foco
+                        if (e.shiftKey && (e.key === 'F')) {{
                             e.preventDefault();
                             if (focusBtn) focusBtn.click();
                         }}
