@@ -2716,7 +2716,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         if (clickedBar.classList.contains('focused')) {{
                             clickedBar.classList.remove('focused');
                         }} else {{
-                            container.querySelectorAll('.gantt-bar').forEach(bar => bar.classList.remove('focused'));
+                            // Permitir seleção múltipla: não removemos a classe 'focused' de outras barras
                             clickedBar.classList.add('focused');
                         }}
                     }});
@@ -3830,6 +3830,21 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                             menu.style.display = 'none';
                         }});
                     }}
+                    
+                    // 5. Click em barras para focar/desfocar
+                    container.addEventListener('click', (e) => {{
+                        if (!focusModeActive) return;
+                        
+                        const clickedBar = e.target.closest('.gantt-bar');
+                        if (!clickedBar) return;
+                        
+                        // Permitir seleção múltipla
+                        if (clickedBar.classList.contains('focused')) {{
+                            clickedBar.classList.remove('focused');
+                        }} else {{
+                            clickedBar.classList.add('focused');
+                        }}
+                    }});
                     
                     // 6. Atalhos de teclado
                     document.addEventListener('keydown', (e) => {{
