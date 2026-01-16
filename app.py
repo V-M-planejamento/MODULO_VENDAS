@@ -3273,10 +3273,272 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     height: 30px;
                     font-size: 13px;
                 }}
+                /* --- CSS DO MENU RADIAL E NOTEPAD (CONSOLIDADO) --- */
+                #radial-menu-{project['id']} {{
+                    position: fixed;
+                    z-index: 2147483647;
+                    display: none;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                }}
+
+                .radial-menu-wrapper {{
+                    position: absolute;
+                    width: 200px;
+                    height: 200px;
+                    transform: translate(-50%, -50%);
+                    pointer-events: none;
+                }}
+
+                .radial-background-circle {{
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 0;
+                    height: 0;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.95);
+                    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+                    transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+                    opacity: 0;
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    pointer-events: auto;
+                }}
+
+                #radial-menu-{project['id']}[style*="display: block"] .radial-background-circle {{
+                    width: 170px;
+                    height: 170px;
+                    opacity: 1;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+                }}
+
+                .radial-center {{
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 12px;
+                    height: 12px;
+                    background: #2d3748;
+                    border-radius: 50%;
+                    z-index: 10;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    pointer-events: auto;
+                    cursor: pointer;
+                    transition: transform 0.2s;
+                }}
+                
+                .radial-center:hover {{
+                    transform: translate(-50%, -50%) scale(1.2);
+                }}
+
+                .radial-item {{
+                    position: absolute;
+                    width: 42px;
+                    height: 42px;
+                    background: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+                    pointer-events: auto;
+                    color: #4a5568;
+                    border: 1px solid rgba(0,0,0,0.05);
+                    z-index: 5;
+                    transform: scale(0);
+                    opacity: 0;
+                }}
+
+                #radial-menu-{project['id']}[style*="display: block"] .radial-item {{
+                    transform: scale(1);
+                    opacity: 1;
+                }}
+
+                .radial-item:hover {{
+                    transform: scale(1.15) !important;
+                    background: #3b82f6;
+                    color: white;
+                    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+                    border-color: #3b82f6;
+                    z-index: 100;
+                }}
+
+                .radial-item svg {{
+                    width: 20px;
+                    height: 20px;
+                    fill: currentColor;
+                    stroke: currentColor;
+                    stroke-width: 0;
+                }}
+
+                /* Remove stroke for filled icons */
+                .radial-item svg path {{
+                    stroke: none;
+                }}
+                
+                /* Specific fix for focus icon which uses strokes */
+                .radial-item#btn-focus-mode-{project['id']} svg rect,
+                .radial-item#btn-focus-mode-{project['id']} svg path {{
+                    stroke: currentColor;
+                    fill: none;
+                    stroke-width: 2;
+                }}
+
+                .radial-tooltip {{
+                    position: absolute;
+                    background: #2d3748;
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    pointer-events: none;
+                    opacity: 0;
+                    transition: all 0.2s;
+                    white-space: nowrap;
+                    z-index: 20;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(10px);
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }}
+                
+                .radial-item:hover + .radial-tooltip {{
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(45px); /* Move down */
+                }}
+
+                /* Tooltip positions overridden inline in JS/HTML but class needed */
+                .radial-tooltip span.tooltip-badge {{
+                    background: rgba(255,255,255,0.2);
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    font-size: 9px;
+                    margin-left: 4px;
+                    text-transform: uppercase;
+                }}
+                
+                /* ---- NOTEPAD STYLES ---- */
+                #floating-notepad-{project['id']} {{
+                    display: none;
+                    position: fixed;
+                    top: 100px;
+                    right: 50px;
+                    width: 320px;
+                    height: 420px;
+                    background: white;
+                    border: 1px solid #e8e8e8;
+                    border-radius: 16px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+                    z-index: 9999;
+                    flex-direction: column;
+                    font-family: 'Inter', sans-serif;
+                    overflow: hidden;
+                    resize: both;
+                    min-width: 250px;
+                    min-height: 200px;
+                    max-width: 600px;
+                    max-height: 80vh;
+                }}
+
+                .notepad-header {{
+                    padding: 12px 16px;
+                    background: #f8f9fa;
+                    border-bottom: 1px solid #e8e8e8;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    cursor: grab;
+                    user-select: none;
+                }}
+
+                .notepad-header:active {{
+                    cursor: grabbing;
+                    background: #f1f3f5;
+                }}
+
+                .notepad-header-title {{
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: #2d3748;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }}
+
+                .notepad-header-title svg {{
+                    width: 16px;
+                    height: 16px;
+                    fill: #718096;
+                }}
+
+                .notepad-close {{
+                    background: transparent;
+                    border: none;
+                    font-size: 20px;
+                    color: #a0aec0;
+                    cursor: pointer;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 4px;
+                    transition: all 0.2s;
+                }}
+
+                .notepad-close:hover {{
+                    background: #ebf0f5;
+                    color: #e53e3e;
+                }}
+
+                .notepad-content {{
+                    flex: 1;
+                    padding: 16px;
+                    border: none;
+                    resize: none;
+                    outline: none;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                    color: #2d3748;
+                }}
+
+                .notepad-content::placeholder {{
+                    color: #a0aec0;
+                }}
             </style>
         </head>
         <body>
             <div class="gantt-container" id="gantt-container-{project['id']}">
+                    <!-- Menu Radial de Contexto -->
+                    <div id="radial-menu-{project['id']}">
+                        <div class="radial-menu-wrapper">
+                            <div class="radial-background-circle"></div>
+                            <div class="radial-center" title="Menu Radial"></div>
+                            <div class="radial-item" id="btn-notepad-{project['id']}" style="top: 74px; left: 120px;">
+                                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                            </div>
+                            <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">N</span></div>
+                            <div class="radial-item" id="btn-focus-mode-{project['id']}" style="top: 74px; left: 28px;">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M18 18l-3-3m3 3l3-3m-3 3v-6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
+                            </div>
+                            <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">F</span></div>
+                        </div>
+                    </div>
+                    <div id="floating-notepad-{project['id']}">
+                        <div class="notepad-header">
+                            <div class="notepad-header-title">
+                                <svg version="1.1" viewBox="0 0 512 512"><path d="M438.8,73.2H292.4L255,0H73.2v512h365.6V73.2z M401.3,474.5H110.7V37.5h119.2l37.4,73.2h134.1V474.5z"/><rect x="146.3" y="150.8" width="219.4" height="36.6"/><rect x="146.3" y="224" width="219.4" height="36.6"/><rect x="146.3" y="297.1" width="219.4" height="36.6"/><rect x="146.3" y="370.3" width="135.9" height="36.6"/></svg>
+                                <span>Anotações</span>
+                            </div>
+                            <button class="notepad-close">×</button>
+                        </div>
+                        <textarea class="notepad-content" spellcheck="true" placeholder="Digite suas anotacoes..."></textarea>
+                    </div>
                     <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
                         <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
@@ -3380,7 +3642,200 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
             {''''''}
 
             <script>
-                // DEBUG: Verificar dados
+                    // --- INÍCIO: FUNÇÕES DE INTERFACE DO CONSOLIDADO ---
+                    
+                    // --- MENU RADIAL DE CONTEXTO ---
+                    const menu = document.getElementById('radial-menu-{project["id"]}');
+                    const notepad = document.getElementById('floating-notepad-{project["id"]}');
+                    const container = document.getElementById('gantt-container-{project['id']}');
+
+                    if (container && menu) {{
+                        // 1. Botão direito para abrir menu
+                        container.addEventListener('contextmenu', (e) => {{
+                            // Impedir menu radial se clicar dentro do notepad
+                            if (e.target.closest('#floating-notepad-{project["id"]}')) {{
+                                return; 
+                            }}
+                            e.preventDefault();
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            const menuWidth = 170;
+                            const menuHeight = 170;
+                            
+                            let left = e.clientX;
+                            let top = e.clientY;
+                            
+                            if (left + menuWidth > viewportWidth) left = viewportWidth - menuWidth - 10;
+                            if (left < 0) left = 10;
+                            if (top + menuHeight > viewportHeight) top = viewportHeight - menuHeight - 10;
+                            if (top < 0) top = 10;
+                            
+                            menu.style.left = left + 'px';
+                            menu.style.top = top + 'px';
+                            menu.style.display = 'block';
+                            
+                            console.log('Menu radial aberto (Consolidado)');
+                        }});
+                        
+                        // 2. Fechar ao clicar fora
+                        document.addEventListener('click', (e) => {{
+                            if (!menu.contains(e.target) && menu.style.display === 'block') {{
+                                menu.style.display = 'none';
+                            }}
+                        }});
+                        
+                         // 2.1. Fechar menu ao clicar nos circulos internos
+                        const radialCenter = menu.querySelector('.radial-center');
+                        const radialBgCircle = menu.querySelector('.radial-background-circle');
+                        
+                        if (radialCenter) {{
+                            radialCenter.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                menu.style.display = 'none';
+                            }});
+                        }}
+                        
+                        if (radialBgCircle) {{
+                            radialBgCircle.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                menu.style.display = 'none';
+                            }});
+                        }}
+                    }}
+                    
+                    // 3. FLOATING NOTEPAD
+                    let notepadActive = false;
+                    const notepadBtn = document.getElementById('btn-notepad-{project['id']}');
+                    const notepadTextarea = notepad ? notepad.querySelector('.notepad-content') : null;
+                    const notepadClose = notepad ? notepad.querySelector('.notepad-close') : null;
+                    
+                    // Nota: Usar chave diferente para o consolidado
+                    const NOTEPAD_STORAGE_KEY = 'gantt_notepad_consolidado';
+                    
+                    const savedContent = localStorage.getItem(NOTEPAD_STORAGE_KEY);
+                    if (savedContent && notepadTextarea) {{
+                        notepadTextarea.value = savedContent;
+                    }}
+                    
+                    if (notepadTextarea) {{
+                        notepadTextarea.addEventListener('input', () => {{
+                            localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                        }});
+                    }}
+                    
+                    if (notepadBtn && notepad) {{
+                        notepadBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            notepadActive = !notepadActive;
+                            notepad.style.display = notepadActive ? 'flex' : 'none';
+                            
+                            if (notepadActive) {{
+                                notepadBtn.style.borderColor = '#007AFF';
+                                notepadBtn.style.background = '#e6f2ff';
+                            }} else {{
+                                notepadBtn.style.borderColor = '';
+                                notepadBtn.style.background = '';
+                            }}
+                            menu.style.display = 'none'; // Fechar menu ao selecionar
+                        }});
+                    }}
+                    
+                    if (notepadClose && notepad) {{
+                        notepadClose.addEventListener('click', () => {{
+                            notepadActive = false;
+                            notepad.style.display = 'none';
+                            notepadBtn.style.borderColor = '';
+                            notepadBtn.style.background = '';
+                        }});
+                    }}
+
+                    // DRAG AND DROP NOTEPAD
+                    if (notepad) {{
+                        const header = notepad.querySelector('.notepad-header');
+                        let isDragging = false;
+                        let currentX;
+                        let currentY;
+                        let initialX;
+                        let initialY;
+                        let xOffset = 0;
+                        let yOffset = 0;
+
+                        header.addEventListener('mousedown', dragStart);
+                        document.addEventListener('mousemove', drag);
+                        document.addEventListener('mouseup', dragEnd);
+
+                        function dragStart(e) {{
+                            initialX = e.clientX - xOffset;
+                            initialY = e.clientY - yOffset;
+                            if (e.target.closest('.notepad-header-title') || e.target === header) {{
+                                isDragging = true;
+                            }}
+                        }}
+
+                        function drag(e) {{
+                            if (isDragging) {{
+                                e.preventDefault();
+                                currentX = e.clientX - initialX;
+                                currentY = e.clientY - initialY;
+                                xOffset = currentX;
+                                yOffset = currentY;
+                                setTranslate(currentX, currentY, notepad);
+                            }}
+                        }}
+
+                        function setTranslate(xPos, yPos, el) {{
+                            el.style.transform = `translate(${{xPos}}px, ${{yPos}}px)`;
+                        }}
+
+                        function dragEnd(e) {{
+                            initialX = currentX;
+                            initialY = currentY;
+                            isDragging = false;
+                        }}
+                    }}
+                    
+                    // 4. MODO FOCO
+                    let focusModeActive = false;
+                    const focusBtn = document.getElementById('btn-focus-mode-{project['id']}');
+                    
+                    if (focusBtn && container) {{
+                        focusBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            focusModeActive = !focusModeActive;
+                            
+                            const allBars = container.querySelectorAll('.gantt-bar');
+                            
+                            if (focusModeActive) {{
+                                allBars.forEach(bar => bar.classList.add('focus-mode'));
+                                focusBtn.style.borderColor = '#007AFF';
+                                focusBtn.style.background = '#e6f2ff';
+                            }} else {{
+                                allBars.forEach(bar => {{
+                                    bar.classList.remove('focus-mode', 'focused');
+                                }});
+                                focusBtn.style.borderColor = '';
+                                focusBtn.style.background = '';
+                            }}
+                            
+                            menu.style.display = 'none';
+                        }});
+                    }}
+                    
+                    // 6. Atalhos de teclado
+                    document.addEventListener('keydown', (e) => {{
+                        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                        if (activeTag === 'input' || activeTag === 'textarea') return;
+
+                        if (e.key === 'n' || e.key === 'N') {{
+                            if (notepadBtn) notepadBtn.click();
+                        }}
+                        if (e.key === 'f' || e.key === 'F') {{
+                            if (focusBtn) focusBtn.click();
+                        }}
+                    }});
+
+                    // DEBUG: Verificar dados
+
                 console.log('Inicializando Gantt Consolidado para:', '{project["name"]}');
                 
                 const coresPorSetor = {json.dumps(StyleConfig.CORES_POR_SETOR)};
