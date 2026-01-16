@@ -1152,7 +1152,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     /* ==== RADIAL CONTEXT MENU ==== */
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
                     
-                    #radial-menu {{
+                    /* Estilos do Menu Radial */
+                    #radial-menu-{project['id']} {{
                         position: fixed;
                         z-index: 2147483647;
                         display: none;
@@ -1308,7 +1309,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     /* ==== FLOATING NOTEPAD ==== */
-                    #floating-notepad {{
+                    #floating-notepad-{project['id']} {{
                         display: none;
                         position: fixed;
                         top: 100px;
@@ -1440,21 +1441,21 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                 
                 <div class="gantt-container" id="gantt-container-{project['id']}">
                     <!-- Menu Radial de Contexto -->
-                    <div id="radial-menu">
+                    <div id="radial-menu-{project['id']}">
                         <div class="radial-menu-wrapper">
                             <div class="radial-background-circle"></div>
                             <div class="radial-center" title="Menu Radial"></div>
-                            <div class="radial-item" id="btn-notepad" style="top: 74px; left: 120px;">
+                            <div class="radial-item" id="btn-notepad-{project['id']}" style="top: 74px; left: 120px;">
                                 <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                             </div>
                             <div class="radial-tooltip" style="top: 74px; left: 146px;">Notas <span class="tooltip-badge">N</span></div>
-                            <div class="radial-item" id="btn-focus-mode" style="top: 74px; left: 28px;">
+                            <div class="radial-item" id="btn-focus-mode-{project['id']}" style="top: 74px; left: 28px;">
                                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M18 18l-3-3m3 3l3-3m-3 3v-6" stroke="currentColor" fill="none" stroke-width="2"/></svg>
                             </div>
                             <div class="radial-tooltip" style="top: 74px; right: 146px;">Modo Foco <span class="tooltip-badge">F</span></div>
                         </div>
                     </div>
-                    <div id="floating-notepad">
+                    <div id="floating-notepad-{project['id']}">
                         <div class="notepad-header">
                             <div class="notepad-header-title">
                                 <svg version="1.1" viewBox="0 0 512 512"><path d="M438.8,73.2H292.4L255,0H73.2v512h365.6V73.2z M401.3,474.5H110.7V37.5h119.2l37.4,73.2h134.1V474.5z"/><rect x="146.3" y="150.8" width="219.4" height="36.6"/><rect x="146.3" y="224" width="219.4" height="36.6"/><rect x="146.3" y="297.1" width="219.4" height="36.6"/><rect x="146.3" y="370.3" width="135.9" height="36.6"/></svg>
@@ -1463,13 +1464,13 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             <button class="notepad-close">×</button>
                         </div>
                         <div class="notepad-toolbar">
-                            <button class="notepad-toolbar-btn" id="btn-bold" title="Negrito">
+                            <button class="notepad-toolbar-btn" id="btn-bold-{project['id']}" title="Negrito">
                                 <svg viewBox="0 0 24 24"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
                             </button>
-                            <button class="notepad-toolbar-btn" id="btn-italic" title="Italico">
+                            <button class="notepad-toolbar-btn" id="btn-italic-{project['id']}" title="Italico">
                                 <svg viewBox="0 0 24 24"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
                             </button>
-                            <button class="notepad-toolbar-btn" id="btn-list" title="Lista">
+                            <button class="notepad-toolbar-btn" id="btn-list-{project['id']}" title="Lista">
                                 <svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
                             </button>
                         </div>
@@ -2582,12 +2583,16 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     // --- MENU RADIAL DE CONTEXTO ---
-                    const menu = document.getElementById('radial-menu');
-                    const notepad = document.getElementById('floating-notepad');
+                    const menu = document.getElementById('radial-menu-{project["id"]}');
+                    const notepad = document.getElementById('floating-notepad-{project["id"]}');
                     const container = document.getElementById('gantt-container-{project['id']}');
 
                     // 1. Botão direito para abrir menu
                     container.addEventListener('contextmenu', (e) => {{
+                        // Impedir menu radial se clicar dentro do notepad
+                        if (e.target.closest('#floating-notepad-{project["id"]}')) {{
+                            return; 
+                        }}
                         e.preventDefault();
                         const viewportWidth = window.innerWidth;
                         const viewportHeight = window.innerHeight;
@@ -2772,9 +2777,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }});
 
                     // 7. Botoes de formatacao da toolbar
-                    const boldBtn = document.getElementById('btn-bold');
-                    const italicBtn = document.getElementById('btn-italic');
-                    const listBtn = document.getElementById('btn-list');
+                    const boldBtn = document.getElementById('btn-bold-{project['id']}');
+                    const italicBtn = document.getElementById('btn-italic-{project['id']}');
+                    const listBtn = document.getElementById('btn-list-{project['id']}');
 
                     function insertAtCursor(textBefore, textAfter = '') {{ 
                         const start = notepadTextarea.selectionStart;
