@@ -2714,6 +2714,9 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
 
                     // 6. Atalhos de teclado
                     document.addEventListener('keydown', (e) => {{
+                        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                        if (activeTag === 'input' || activeTag === 'textarea') return;
+
                         if (e.key === 'n' || e.key === 'N') {{
                             if (notepadBtn) notepadBtn.click();
                         }}
