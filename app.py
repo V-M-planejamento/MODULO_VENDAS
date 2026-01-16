@@ -2592,7 +2592,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     // --- MENU RADIAL DE CONTEXTO ---
                     const menu = document.getElementById('radial-menu');
                     const notepad = document.getElementById('floating-notepad');
-                    const container = document.getElementById('gantt-container-{project["id"]}');
+                    const container = document.getElementById('gantt-container-{project['id']}');
 
                     // 1. Botão direito para abrir menu
                     container.addEventListener('contextmenu', (e) => {{
@@ -2619,7 +2619,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         menu.style.top = top + 'px';
                         menu.style.display = 'block';
                         
-                        console.log('📍 Menu radial aberto');
+                        console.log('Menu radial aberto');
                     }});
                     
                     // 2. Fechar ao clicar fora
@@ -2637,7 +2637,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         radialCenter.addEventListener('click', (e) => {{
                             e.stopPropagation();
                             menu.style.display = 'none';
-                            console.log('❌ Menu fechado (clique no centro)');
+                            console.log('Menu fechado (clique no centro)');
                         }});
                     }}
                     
@@ -2645,7 +2645,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         radialBgCircle.addEventListener('click', (e) => {{
                             e.stopPropagation();
                             menu.style.display = 'none';
-                            console.log('❌ Menu fechado (clique no circulo de fundo)');
+                            console.log('Menu fechado (clique no circulo de fundo)');
                         }});
                     }}
                     
@@ -2682,7 +2682,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             }}
                             
                             menu.style.display = 'none';
-                            console.log('📝 Notepad toggled:', notepadActive);
+                            console.log('Notepad toggled:', notepadActive);
                         }});
                     }}
                     
@@ -2742,14 +2742,14 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                                 allBars.forEach(bar => bar.classList.add('focus-mode'));
                                 focusBtn.style.borderColor = '#007AFF';
                                 focusBtn.style.background = '#e6f2ff';
-                                console.log('🎯 Modo foco ATIVADO');
+                                console.log('Modo foco ATIVADO');
                             }} else {{
                                 allBars.forEach(bar => {{
                                     bar.classList.remove('focus-mode', 'focused');
                                 }});
                                 focusBtn.style.borderColor = '';
                                 focusBtn.style.background = '';
-                                console.log('🎯 Modo foco DESATIVADO');
+                                console.log('Modo foco DESATIVADO');
                             }}
                             
                             menu.style.display = 'none';
@@ -2852,7 +2852,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             }}
                             
                             // Inserir bullet point
-                            const newText = text.substring(0, lineStart) + '• ' + text.substring(lineStart);
+                            const newText = text.substring(0, lineStart) + '\\u2022 ' + text.substring(lineStart);
                             notepadTextarea.value = newText;
                             
                             // Mover cursor
