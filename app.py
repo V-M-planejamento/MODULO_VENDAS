@@ -1084,6 +1084,42 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     .toolbar-btn.is-fullscreen:hover {{
                         background-color: #2563eb;
                     }}
+                    /* Tira o background do container quando colapsado e esconde botões */
+                    .gantt-toolbar.collapsed {{
+                        background: transparent;
+                        box-shadow: none;
+                        padding: 0;
+                        pointer-events: none;
+                    }}
+                    .gantt-toolbar.collapsed .toolbar-btn {{
+                        display: none;
+                    }}
+                    /* O botão de toggle sempre aparece, mas muda de estilo quando colapsado */
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn {{
+                        display: flex;
+                        pointer-events: auto;
+                        background: rgba(255, 255, 255, 0.3);
+                        color: #4a5568;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 50%;
+                        backdrop-filter: blur(2px);
+                    }}
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
+                        background: rgba(255, 255, 255, 0.8);
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }}
+                    .toolbar-toggle-btn {{
+                         /* Botão normal dentro da toolbar */
+                         margin-bottom: 2px;
+                    }}
+                    .toolbar-toggle-btn svg {{
+                        transition: transform 0.3s ease;
+                    }}
+                    .gantt-toolbar.collapsed .toolbar-toggle-btn svg {{
+                        transform: rotate(180deg);
+                    }}
                     .floating-filter-menu {{
                         display: none;
                         position: absolute;
@@ -1436,6 +1472,13 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     </div>
                     
                 <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
+                    <button class="toolbar-btn toolbar-toggle-btn" id="toolbar-toggle-btn-{project["id"]}" title="Recolher/Expandir Menu">
+                         <span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                        </span>
+                    </button>
                     <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2224,12 +2267,25 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     function setupEventListeners() {{
                         const ganttChartContent = document.getElementById('gantt-chart-content-{project["id"]}'), sidebarContent = document.getElementById('gantt-sidebar-content-{project['id']}');
                         const fullscreenBtn = document.getElementById('fullscreen-btn-{project["id"]}'), toggleBtn = document.getElementById('toggle-sidebar-btn-{project['id']}');
+                        const toolbarToggleBtn = document.getElementById('toolbar-toggle-btn-{project["id"]}');
+                        const toolbar = document.getElementById('gantt-toolbar-{project["id"]}');
                         const filterBtn = document.getElementById('filter-btn-{project["id"]}');
                         const filterMenu = document.getElementById('filter-menu-{project['id']}');
                         const container = document.getElementById('gantt-container-{project["id"]}');
 
                         const applyBtn = document.getElementById('filter-apply-btn-{project["id"]}');
                         if (applyBtn) applyBtn.addEventListener('click', () => applyFiltersAndRedraw());
+                        
+                        if (toolbarToggleBtn && toolbar) {{
+                            toolbarToggleBtn.addEventListener('click', (e) => {{
+                                e.stopPropagation();
+                                toolbar.classList.toggle('collapsed');
+                                // Se colapsar, garante que o menu de filtro fecha também
+                                if (toolbar.classList.contains('collapsed')) {{
+                                    if (filterMenu) filterMenu.classList.remove('is-open');
+                                }}
+                            }});
+                        }}
 
                         if (fullscreenBtn) fullscreenBtn.addEventListener('click', () => toggleFullscreen());
 
@@ -3179,6 +3235,42 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 .toolbar-btn.is-fullscreen:hover {{
                     background-color: #2563eb;
                 }}
+                 /* Tira o background do container quando colapsado e esconde botões */
+                .gantt-toolbar.collapsed {{
+                    background: transparent;
+                    box-shadow: none;
+                    padding: 0;
+                    pointer-events: none;
+                }}
+                .gantt-toolbar.collapsed .toolbar-btn {{
+                    display: none;
+                }}
+                /* O botão de toggle sempre aparece, mas muda de estilo quando colapsado */
+                .gantt-toolbar.collapsed .toolbar-toggle-btn {{
+                    display: flex;
+                    pointer-events: auto;
+                    background: rgba(255, 255, 255, 0.3);
+                    color: #4a5568;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    backdrop-filter: blur(2px);
+                }}
+                .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
+                    background: rgba(255, 255, 255, 0.8);
+                    opacity: 1;
+                    transform: scale(1.1);
+                }}
+                .toolbar-toggle-btn {{
+                        /* Botão normal dentro da toolbar */
+                        margin-bottom: 2px;
+                }}
+                .toolbar-toggle-btn svg {{
+                    transition: transform 0.3s ease;
+                }}
+                .gantt-toolbar.collapsed .toolbar-toggle-btn svg {{
+                    transform: rotate(180deg);
+                }}
                  /* *** INÍCIO: Arredondar Dropdown Virtual Select *** */
                     .floating-filter-menu .vscomp-dropbox {{
                         border-radius: 8px; /* Controla o arredondamento dos cantos do dropdown */
@@ -3550,6 +3642,13 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                         <textarea class="notepad-content" spellcheck="true" placeholder="Digite suas anotacoes..."></textarea>
                     </div>
                     <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
+                        <button class="toolbar-btn toolbar-toggle-btn" id="toolbar-toggle-btn-{project["id"]}" title="Recolher/Expandir Menu">
+                            <span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                        </span>
+                    </button>
                         <button class="toolbar-btn" id="filter-btn-{project["id"]}" title="Filtros">
                         <span>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4272,12 +4371,25 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                 function setupEventListeners() {{
                     const ganttChartContent = document.getElementById('gantt-chart-content-{project["id"]}'), sidebarContent = document.getElementById('gantt-sidebar-content-{project['id']}');
                     const fullscreenBtn = document.getElementById('fullscreen-btn-{project["id"]}'), toggleBtn = document.getElementById('toggle-sidebar-btn-{project['id']}');
+                    const toolbarToggleBtn = document.getElementById('toolbar-toggle-btn-{project["id"]}');
+                    const toolbar = document.getElementById('gantt-toolbar-{project["id"]}');
                     const filterBtn = document.getElementById('filter-btn-{project["id"]}');
                     const filterMenu = document.getElementById('filter-menu-{project['id']}');
                     const container = document.getElementById('gantt-container-{project["id"]}');
 
                     const applyBtn = document.getElementById('filter-apply-btn-{project["id"]}');
                     if (applyBtn) applyBtn.addEventListener('click', () => applyFiltersAndRedraw());
+                    
+                     if (toolbarToggleBtn && toolbar) {{
+                        toolbarToggleBtn.addEventListener('click', (e) => {{
+                            e.stopPropagation();
+                            toolbar.classList.toggle('collapsed');
+                            // Se colapsar, garante que o menu de filtro fecha também
+                            if (toolbar.classList.contains('collapsed')) {{
+                                if (filterMenu) filterMenu.classList.remove('is-open');
+                            }}
+                        }});
+                    }}
 
                     if (fullscreenBtn) fullscreenBtn.addEventListener('click', () => toggleFullscreen());
 
@@ -5310,4 +5422,4 @@ with st.spinner("Carregando e processando dados..."):
                         </div>""", unsafe_allow_html=True)
 
     else:
-        st.error("❌ Não foi possível carregar ou gerar os dados.")
+        st.error("❌ Não foi possível carregar ou gerar os dados.") 
