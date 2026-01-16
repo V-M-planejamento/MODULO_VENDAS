@@ -2797,7 +2797,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     if (boldBtn) {{
-                        boldBtn.addEventListener('click', () => {{
+                        boldBtn.addEventListener('mousedown', (e) => {{
+                            e.preventDefault(); // Impede que o botão roube o foco do textarea
                             const start = notepadTextarea.selectionStart;
                             const end = notepadTextarea.selectionEnd;
                             const selectedText = notepadTextarea.value.substring(start, end);
@@ -2807,7 +2808,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     if (italicBtn) {{
-                        italicBtn.addEventListener('click', () => {{
+                        italicBtn.addEventListener('mousedown', (e) => {{
+                            e.preventDefault();
                             const start = notepadTextarea.selectionStart;
                             const end = notepadTextarea.selectionEnd;
                             const selectedText = notepadTextarea.value.substring(start, end);
@@ -2817,7 +2819,8 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
                     if (listBtn) {{
-                        listBtn.addEventListener('click', () => {{
+                        listBtn.addEventListener('mousedown', (e) => {{
+                            e.preventDefault();
                             const start = notepadTextarea.selectionStart;
                             const text = notepadTextarea.value;
                             let lineStart = start;
