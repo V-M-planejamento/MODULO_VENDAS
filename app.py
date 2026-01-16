@@ -1090,6 +1090,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         box-shadow: none;
                         padding: 0;
                         pointer-events: none;
+                        top: 3px; /* Alinha com o botão de toggle da sidebar */
                     }}
                     .gantt-toolbar.collapsed .toolbar-btn {{
                         display: none;
@@ -3241,6 +3242,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     box-shadow: none;
                     padding: 0;
                     pointer-events: none;
+                    top: 3px; /* Alinha com o botão de toggle da sidebar */
                 }}
                 .gantt-toolbar.collapsed .toolbar-btn {{
                     display: none;
