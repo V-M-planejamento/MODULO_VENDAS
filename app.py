@@ -1397,6 +1397,41 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                     }}
 
 
+
+                    .notepad-toolbar {{
+                        display: flex;
+                        gap: 4px;
+                        padding: 6px 10px;
+                        border-bottom: 1px solid #e2e8f0;
+                        background: #fff;
+                    }}
+                    
+                    .notepad-toolbar-btn {{
+                        background: transparent;
+                        border: 1px solid transparent;
+                        border-radius: 4px;
+                        padding: 4px;
+                        cursor: pointer;
+                        color: #718096;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s;
+                        width: 24px;
+                        height: 24px;
+                    }}
+                    
+                    .notepad-toolbar-btn:hover {{
+                        background-color: #edf2f7;
+                        color: #2d3748;
+                    }}
+
+                    .notepad-toolbar-btn svg {{
+                        width: 14px;
+                        height: 14px;
+                        fill: currentColor;
+                    }}
+
                 </style>
             </head>
             <body>
@@ -1427,7 +1462,18 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             </div>
                             <button class="notepad-close">×</button>
                         </div>
-                        <textarea class="notepad-content" placeholder="Digite suas anotações aqui...&#10;&#10;• Use este espaço para lembrar de tarefas pendentes&#10;• Anote insights sobre o projeto&#10;• Suas notas são salvas automaticamente"></textarea>
+                        <div class="notepad-toolbar">
+                            <button class="notepad-toolbar-btn" id="btn-bold" title="Negrito">
+                                <svg viewBox="0 0 24 24"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+                            </button>
+                            <button class="notepad-toolbar-btn" id="btn-italic" title="Italico">
+                                <svg viewBox="0 0 24 24"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+                            </button>
+                            <button class="notepad-toolbar-btn" id="btn-list" title="Lista">
+                                <svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z"/></svg>
+                            </button>
+                        </div>
+                        <textarea class="notepad-content" spellcheck="true" placeholder="Digite suas anotacoes..."></textarea>
                     </div>
                     
                 <div class="gantt-toolbar" id="gantt-toolbar-{project["id"]}">
@@ -2724,6 +2770,61 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                             if (focusBtn) focusBtn.click();
                         }}
                     }});
+
+                    // 7. Botoes de formatacao da toolbar
+                    const boldBtn = document.getElementById('btn-bold');
+                    const italicBtn = document.getElementById('btn-italic');
+                    const listBtn = document.getElementById('btn-list');
+
+                    function insertAtCursor(textBefore, textAfter = '') {{ 
+                        const start = notepadTextarea.selectionStart;
+                        const end = notepadTextarea.selectionEnd;
+                        const text = notepadTextarea.value;
+                        const selectedText = text.substring(start, end);
+                        
+                        const newText = text.substring(0, start) + textBefore + selectedText + textAfter + text.substring(end);
+                        notepadTextarea.value = newText;
+                        
+                        const newCursorPos = start + textBefore.length + selectedText.length + textAfter.length;
+                        notepadTextarea.setSelectionRange(newCursorPos, newCursorPos);
+                        notepadTextarea.focus();
+                        localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                    }}
+
+                    if (boldBtn) {{
+                        boldBtn.addEventListener('click', () => {{
+                            const start = notepadTextarea.selectionStart;
+                            const end = notepadTextarea.selectionEnd;
+                            const selectedText = notepadTextarea.value.substring(start, end);
+                            if (selectedText) insertAtCursor('**', '**');
+                            else insertAtCursor('**negrito**');
+                        }});
+                    }}
+
+                    if (italicBtn) {{
+                        italicBtn.addEventListener('click', () => {{
+                            const start = notepadTextarea.selectionStart;
+                            const end = notepadTextarea.selectionEnd;
+                            const selectedText = notepadTextarea.value.substring(start, end);
+                            if (selectedText) insertAtCursor('*', '*');
+                            else insertAtCursor('*italico*');
+                        }});
+                    }}
+
+                    if (listBtn) {{
+                        listBtn.addEventListener('click', () => {{
+                            const start = notepadTextarea.selectionStart;
+                            const text = notepadTextarea.value;
+                            let lineStart = start;
+                            while (lineStart > 0 && text[lineStart - 1] !== '\\n') lineStart--;
+                            
+                            const newText = text.substring(0, lineStart) + '\\u2022 ' + text.substring(lineStart);
+                            notepadTextarea.value = newText;
+                            notepadTextarea.setSelectionRange(start + 2, start + 2);
+                            notepadTextarea.focus();
+                            localStorage.setItem(NOTEPAD_STORAGE_KEY, notepadTextarea.value);
+                        }});
+                    }}
 
 
                     // DEBUG: Verificar se há dados antes de inicializar
