@@ -1102,7 +1102,7 @@ def gerar_gantt_por_projeto(df, tipo_visualizacao, df_original_para_ordenacao, p
                         color: #4a5568;
                         width: 24px;
                         height: 24px;
-                        border-radius: 50%;
+                        border-radius: 4px;
                         backdrop-filter: blur(2px);
                     }}
                     .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
@@ -3253,7 +3253,7 @@ def gerar_gantt_consolidado(df, tipo_visualizacao, df_original_para_ordenacao, p
                     color: #4a5568;
                     width: 24px;
                     height: 24px;
-                    border-radius: 50%;
+                    border-radius: 4px;
                     backdrop-filter: blur(2px);
                 }}
                 .gantt-toolbar.collapsed .toolbar-toggle-btn:hover {{
